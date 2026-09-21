@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "macros.html" import inspector_sidebar, status_badge, severity_badge %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ inspector_sidebar('my-reports', user) }}
+    <main class="app-main">
+        <a href="/inspector/dashboard" class="d-inline-block mb-2">&larr; Back to Home</a>
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <h2 class="page-title mb-0">Report RPT-{{ '%04d'|format(report.id) }}</h2>
+            {{ status_badge(report.status) }}
+        </div>
+
+        {% if follow_up_pending %}
+        <div class="card mb-3 reveal" style="border-left: 4px solid var(--orange);">
+            <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h6 class="mb-1">Follow-up Photo Requested</h6>
+                    <p class="text-muted mb-0" style="font-size:0.88rem;">Your Engineer asked for a new photo of this same spot, to check whether the crack has changed.</p>
+                </div>
+                <a href="/inspector/reports/{{ report.id }}/follow-up/new" class="btn btn-primary btn-sm">Take/Upload New Photo &rarr;</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded mb-3" style="max-width:100%; max-height:360px; object-fit:cover;">
+
+                <div class="card reveal">
+                    <div class="card-body">
+                        <h6 class="mb-2">Inspector's On-Site Notes</h6>
+                        <p class="mb-0 text-body" style="font-size:0.92rem;">
+                            {% if report.site_notes %}{{ report.site_notes }}
+                            {% elif report.structure_age %}Structure is {{ report.structure_age }} old. Surface condition: {{ report.surface_condition }}. Crack {{ 'is' if report.actively_growing == 'Yes' else ('does not appear to be' if report.actively_growing == 'No' else 'may or may not be') }} actively growing.
+                            {% else %}No additional notes were recorded.{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card mb-3 reveal">
+                    <div class="card-body">
+                        <h6 class="mb-3">AI Analysis</h6>
+                        {% if ai_label %}
+                        <div class="finding-row">
+                            <span class="label">Crack Detected</span>
+                            <span class="value">
+                                <span class="badge {{ 'bg-danger' if ai_label == 'Cracked' else 'bg-success' }}">{{ ai_label }}</span>
+                                {{ ai_confidence }}%
+                            </span>
+                        </div>
+                        {% elif analysis_done %}
+                        <p class="text-muted mb-0" style="font-size:0.9rem;">Pending analysis &mdash; the AI model file isn't in place yet.</p>
+                        {% else %}
+                        <p class="text-muted mb-0" style="font-size:0.9rem;">Pending analysis &mdash; the Engineer hasn't run it yet.</p>
+                        {% endif %}
+                        <div class="finding-row">
+                            <span class="label">Crack Type</span>
+                            <span class="value">
+                                {% if type_label %}{{ type_label }}{% if type_confidence %} ({{ type_confidence }}%){% endif %}
+                                {% else %}<span class="text-muted">Not yet available</span>{% endif %}
+                            </span>
+                        </div>
+                        <div class="finding-row">
+                            <span class="label">Severity</span>
+                            <span class="value">{{ severity_badge(severity_label) }}</span>
+                        </div>
+                        {% if severity_label == "No crack shape detected" %}
+                        <p class="placeholder-note mt-2 mb-2">The AI didn't find a confident, traceable crack shape in this photo. This can genuinely happen -- the trained model finds a shape in roughly 4 out of 10 truly cracked photos, so this isn't unusual.</p>
+                        {% elif severity_label == "Analysis error" %}
+                        <p class="placeholder-note mt-2 mb-2 text-danger">Something went wrong while analyzing this photo. Ask your Engineer to try Re-run Analysis.</p>
+                        {% endif %}
+                        {% if annotated_photo_path %}
+                        <p class="text-muted mb-1" style="font-size:0.82rem;">AI-traced crack outline:</p>
+                        <img src="/uploads/{{ annotated_photo_path }}" class="img-fluid rounded mb-2" style="max-width:100%; max-height:200px; object-fit:cover;">
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if report.status in ("Reviewed", "Resolved") %}
+                <div class="card decision-card reveal">
+                    <div class="card-body">
+                        <h6 class="mb-3">Engineer's Decision</h6>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="avatar">{{ (reviewer.name.split(" ")[0][0] + reviewer.name.split(" ")[-1][0]) if reviewer else "?" }}</div>
+                            <span style="font-size:0.92rem;">{{ reviewer.name if reviewer else "Unknown" }}, Engineer</span>
+                        </div>
+                        <div class="decision-field mb-3">
+                            <div class="field-label">Cause</div>
+                            <div class="field-value{{ ' text-muted' if not report.cause }}" style="font-size:0.9rem;">{{ report.cause if report.cause else "Not noted by the Inspector" }}</div>
+                        </div>
+                        <div class="decision-field mb-3">
+                            <div class="field-label">Treatment</div>
+                            <div class="field-value{{ ' text-muted' if not report.treatment }}" style="font-size:0.9rem;">{{ report.treatment if report.treatment else "Not yet provided by the Engineer" }}</div>
+                        </div>
+                        {% if report.engineer_remarks %}
+                        <div class="decision-remarks">&ldquo;{{ report.engineer_remarks }}&rdquo;</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="card reveal">
+                    <div class="card-body">
+                        <h6 class="mb-3">Status Timeline</h6>
+                        <ul class="status-timeline">
+                            <li class="done">
+                                <span class="dot"></span>
+                                <span>
+                                    <div class="step-title">Submitted</div>
+                                    <div class="step-date">{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</div>
+                                </span>
+                            </li>
+                            <li class="{{ 'done' if report.under_review_at else '' }}">
+                                <span class="dot"></span>
+                                <span>
+                                    <div class="step-title">Under Review</div>
+                                    <div class="step-date">{{ (report.under_review_at | localtime).strftime("%b %d, %Y") if report.under_review_at else "Pending" }}</div>
+                                </span>
+                            </li>
+                            <li>
+                                <span class="dot"></span>
+                                <span>
+                                    <div class="step-title">Reviewed</div>
+                                    <div class="step-date">Pending</div>
+                                </span>
+                            </li>
+                            <li>
+                                <span class="dot"></span>
+                                <span>
+                                    <div class="step-title">Resolved</div>
+                                    <div class="step-date">Pending</div>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

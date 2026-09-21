@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "macros.html" import inspector_sidebar, engineer_sidebar, admin_sidebar,
+   icon_check, icon_clipboard, icon_warning, icon_inbox, icon_audit %}
+
+
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% macro notif_icon(kind) %}
+{% if kind == 'check' %}<span class="notification-icon">{{ icon_check() }}</span>
+{% elif kind == 'clipboard' %}<span class="notification-icon">{{ icon_clipboard() }}</span>
+{% elif kind == 'inbox' %}<span class="notification-icon">{{ icon_inbox() }}</span>
+{% elif kind == 'audit' %}<span class="notification-icon">{{ icon_audit() }}</span>
+{% else %}<span class="notification-icon warn">{{ icon_warning() }}</span>
+{% endif %}
+{% endmacro %}
+
+{% macro notifications_card(items) %}
+<h2 class="page-title mb-4">Notifications</h2>
+
+<div class="card p-4" style="max-width:720px;">
+    {% if items %}
+    {% for item in items %}
+    <a href="{{ item.href }}" class="notification-row reveal">
+        {{ notif_icon(item.icon) }}
+        <span class="notification-text">{{ item.text }}</span>
+        <span class="notification-time">{{ (item.time | localtime).strftime("%b %d, %Y") }}</span>
+    </a>
+    {% endfor %}
+    {% else %}
+    <p class="text-muted mb-0">Nothing new right now &mdash; you're all caught up.</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+{% if user.role == 'Inspector' %}
+<div class="app-shell">
+    {{ inspector_sidebar('notifications', user) }}
+    <main class="app-main">
+        {{ notifications_card(items) }}
+    </main>
+</div>
+{% elif user.role == 'Engineer' %}
+<div class="app-shell">
+    {{ engineer_sidebar('notifications', user) }}
+    <main class="app-main">
+        {{ notifications_card(items) }}
+    </main>
+</div>
+{% else %}
+<div class="app-shell">
+    {{ admin_sidebar('notifications', user) }}
+    <main class="app-main">
+        {{ notifications_card(items) }}
+    </main>
+</div>
+{% endif %}
+{% endblock %}

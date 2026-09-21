@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, severity_badge, icon_compare %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('follow-ups', user) }}
+    <main class="app-main">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_compare() }}</div>
+            <h2 class="page-title mb-0">Follow-up Scan &mdash; RPT-{{ '%04d'|format(report.id) }}</h2>
+        </div>
+        <p class="text-muted mb-4">{{ report.location }} &mdash; comparing the original scan to the new one</p>
+
+        <div class="compare-columns mb-4">
+            <div class="compare-col reveal">
+                <div class="mb-2">
+                    <span class="compare-tag">Before</span>
+                    <span class="compare-date">{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                </div>
+                <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded" style="max-height:280px; width:100%; object-fit:cover;">
+            </div>
+            <div class="compare-col reveal">
+                <div class="mb-2">
+                    <span class="compare-tag tag-after">After</span>
+                    <span class="compare-date">{{ (report.follow_up_created_at | localtime).strftime("%b %d, %Y") }}</span>
+                </div>
+                <img src="/uploads/{{ report.follow_up_photo_path }}" class="img-fluid rounded" style="max-height:280px; width:100%; object-fit:cover;">
+            </div>
+        </div>
+
+        <div class="compare-summary">
+            <div>
+                <div class="metric-label">Crack Detected</div>
+                <div class="metric-values">
+                    {{ original_label or "—" }}<span class="arrow">&rarr;</span>{{ report.follow_up_ai_label or "—" }}
+                </div>
+            </div>
+            <div>
+                <div class="metric-label">Confidence</div>
+                <div class="metric-values">
+                    {{ (original_confidence ~ "%") if original_confidence is not none else "—" }}<span class="arrow">&rarr;</span>{{ (report.follow_up_ai_confidence ~ "%") if report.follow_up_ai_confidence is not none else "—" }}
+                </div>
+            </div>
+            <div>
+                <div class="metric-label">Severity</div>
+                <div class="metric-values">
+                    {{ severity_badge(original_severity) }}<span class="arrow">&rarr;</span>{{ severity_badge(report.follow_up_severity) }}
+                </div>
+            </div>
+        </div>
+        <p class="placeholder-note mb-4">Width and length aren't measured by any of the three models, so they're left out rather than guessed.</p>
+
+        {% if report.follow_up_annotated_photo_path %}
+        <div class="compare-columns mb-4">
+            <div class="compare-col">
+                <p class="text-muted mb-1" style="font-size:0.82rem;">Before &mdash; AI-traced outline</p>
+                {% if report.model3_annotated_photo_path %}
+                <img src="/uploads/{{ report.model3_annotated_photo_path }}" class="img-fluid rounded" style="max-height:220px; width:100%; object-fit:cover;">
+                {% else %}
+                <p class="text-muted" style="font-size:0.85rem;">Not yet available &mdash; run analysis on this report to trace the original photo.</p>
+                {% endif %}
+            </div>
+            <div class="compare-col">
+                <p class="text-muted mb-1" style="font-size:0.82rem;">After &mdash; AI-traced outline</p>
+                <img src="/uploads/{{ report.follow_up_annotated_photo_path }}" class="img-fluid rounded" style="max-height:220px; width:100%; object-fit:cover;">
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="mb-3">Your Decision</h6>
+                {% if report.follow_up_decision %}
+                <p class="mb-3">Marked as: <strong>{{ report.follow_up_decision }}</strong></p>
+                {% endif %}
+                <div class="d-flex gap-2 flex-wrap">
+                    <form method="post" action="/engineer/reports/{{ report.id }}/follow-up/decision">
+                        <input type="hidden" name="decision" value="Escalated">
+                        <button type="submit" class="btn btn-outline-primary">Escalate &mdash; Crack Worsening</button>
+                    </form>
+                    <form method="post" action="/engineer/reports/{{ report.id }}/follow-up/decision">
+                        <input type="hidden" name="decision" value="Keep Monitoring">
+                        <button type="submit" class="btn btn-primary">Keep Monitoring</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <a href="/engineer/reports/{{ report.id }}/follow-up/new">Add another follow-up photo &rarr;</a>
+    </main>
+</div>
+{% endblock %}

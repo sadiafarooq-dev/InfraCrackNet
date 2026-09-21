@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import wizard_header, icon_pin %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ wizard_header(2, "Location") }}
+
+<div class="wizard-card reveal">
+    <h3 class="mb-1">Mark the Location</h3>
+    <p class="text-muted mb-4">Type the address or landmark where the damage is.</p>
+
+    <div class="map-placeholder mb-4">{{ icon_pin('') }}</div>
+
+    <form method="post" action="/inspector/reports/new/location">
+        <div class="mb-4">
+            <label class="form-label">Address / Landmark</label>
+            <input type="text" name="location" class="form-control" placeholder="Main St Bridge, Sector G-9" value="{{ location }}" required>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/inspector/reports/new/upload" class="btn btn-outline-primary" style="flex:0 0 140px;">&larr; Back</a>
+            <button type="submit" class="btn btn-primary flex-grow-1">Continue &rarr;</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

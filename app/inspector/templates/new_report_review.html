@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import wizard_header %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ wizard_header(4, "Review") }}
+
+<div class="wizard-card">
+    <h3 class="mb-4">Review Before You Submit</h3>
+
+    <img src="/uploads/{{ draft.photo_path }}" class="img-fluid rounded mb-4" style="max-height:220px; object-fit:cover;">
+
+    <div class="mb-4">
+        <div class="summary-row reveal">
+            <span class="label">Location</span>
+            <span class="value">{{ draft.location }}</span>
+        </div>
+        <div class="summary-row reveal">
+            <span class="label">Structure age</span>
+            <span class="value">{{ draft.structure_age }}</span>
+        </div>
+        <div class="summary-row reveal">
+            <span class="label">Surface condition</span>
+            <span class="value">{{ draft.surface_condition }}</span>
+        </div>
+        <div class="summary-row reveal">
+            <span class="label">Actively growing</span>
+            <span class="value">{{ draft.actively_growing }}</span>
+        </div>
+        {% if draft.cause %}
+        <div class="summary-row reveal">
+            <span class="label">Suspected cause</span>
+            <span class="value">{{ draft.cause }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <form method="post" action="/inspector/reports/new/review">
+        <div class="d-flex gap-2">
+            <a href="/inspector/reports/new/context" class="btn btn-outline-primary" style="flex:0 0 140px;">&larr; Back</a>
+            <button type="submit" class="btn btn-primary flex-grow-1">Submit Report</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

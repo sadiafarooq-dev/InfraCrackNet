@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "macros.html" import simple_topbar, icon_camera %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ simple_topbar("/inspector/reports/" ~ report.id) }}
+
+<div class="wizard-card reveal">
+    <p class="text-muted mb-1" style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;">Follow-up &middot; RPT-{{ '%04d'|format(report.id) }}</p>
+    <h3 class="mb-3">Take/Upload a New Photo</h3>
+    <p class="text-muted mb-4">Your Engineer asked for a new photo of {{ report.location }}, to check whether the crack has changed since your original report.</p>
+
+    <form method="post" action="/inspector/reports/{{ report.id }}/follow-up/new" enctype="multipart/form-data">
+        <div class="dropzone mb-4" data-camera-capture>
+            <div class="cam-badge">{{ icon_camera('') }}</div>
+            <div class="dz-main mb-2">Take a photo or upload from your gallery</div>
+            <div class="dz-sub mb-3">JPG or PNG &mdash; up to 25MB</div>
+
+            <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-open-camera>Open Live Camera</button>
+
+            <div class="camera-live" data-camera-live hidden>
+                <video data-camera-video autoplay playsinline muted></video>
+                <div class="camera-live-actions">
+                    <button type="button" class="btn btn-primary btn-sm" data-camera-shutter>Capture Photo</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-camera-cancel>Cancel</button>
+                </div>
+            </div>
+            <div class="camera-preview" data-camera-preview hidden>
+                <img data-camera-preview-img alt="Captured photo preview">
+                <div><button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-camera-retake>Retake</button></div>
+            </div>
+            <canvas data-camera-canvas hidden></canvas>
+
+            <input type="file" name="photo" accept="image/*" capture="environment" class="form-control" required data-camera-input>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Submit Follow-up Photo &rarr;</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "macros.html" import illustration_workflow %}
+{% block content %}
+<h2 class="page-title">Welcome, {{ user.name }}</h2>
+<div class="card p-4 text-center reveal">
+    <div class="spot-illustration float-anim mb-3">
+        {{ illustration_workflow(220) }}
+    </div>
+    <p class="mb-1">You are logged in as an Admin.</p>
+    <p class="text-muted mb-0">The real Admin dashboard is coming in a later stage.</p>
+</div>
+{% endblock %}

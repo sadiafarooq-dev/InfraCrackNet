@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_gauge %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('overview', user) }}
+    <main class="app-main">
+        <span class="eyebrow">DASHBOARD</span>
+        <h2 class="page-title mb-1">Overview</h2>
+        <p class="text-muted mb-4">System-wide summary of InfraCrackNet activity</p>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card reveal">
+                    <span class="stat-badge">Total Reports</span>
+                    <div class="stat-value">{{ stats.total_reports }}</div>
+                    <div class="stat-sub">+{{ stats.new_this_week }} this week</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card reveal">
+                    <span class="stat-badge">Pending Review</span>
+                    <div class="stat-value">{{ stats.pending_review }}</div>
+                    <div class="stat-sub">Needs attention</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card reveal">
+                    <span class="stat-badge">Resolved</span>
+                    <div class="stat-value">{{ stats.resolved }}</div>
+                    <div class="stat-sub">{{ stats.resolution_rate }}% resolution rate</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card reveal">
+                    <span class="stat-badge">Active Users</span>
+                    <div class="stat-value">{{ stats.active_users }}</div>
+                    <div class="stat-sub">Inspectors &amp; Engineers</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="card p-4">
+                    <h6 class="mb-3">Recent Activity</h6>
+                    {% if recent_activity %}
+                    {% for entry in recent_activity %}
+                    <div class="activity-row reveal">
+                        <div>
+                            <div class="activity-text">{{ entry.details }}</div>
+                            <div class="activity-time">{{ entry.actor_name }} &middot; {{ (entry.created_at | localtime).strftime("%b %d, %Y %I:%M %p") }}</div>
+                        </div>
+                        <span class="activity-tag">{{ entry.action }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">Nothing recorded yet &mdash; real actions (new accounts, report reviews, etc.) will start showing up here as they happen.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card p-4">
+                    <h6 class="mb-3">Reports by Severity</h6>
+                    {% if severity_stats %}
+                    <div class="severity-donut-wrap">
+                        <div class="severity-donut" style="background: conic-gradient(#3fae6a 0% {{ severity_stats.stop1 }}%, #f2b84b {{ severity_stats.stop1 }}% {{ severity_stats.stop2 }}%, #c0392b {{ severity_stats.stop2 }}% 100%);">
+                            <div class="severity-donut-hole">
+                                <div class="donut-total">{{ severity_stats.total }}</div>
+                                <div class="donut-sub">analyzed</div>
+                            </div>
+                        </div>
+                        <ul class="severity-legend">
+                            <li><span class="legend-dot dot-low"></span>Low &mdash; {{ severity_stats.low.count }} ({{ severity_stats.low.pct }}%)</li>
+                            <li><span class="legend-dot dot-medium"></span>Medium &mdash; {{ severity_stats.medium.count }} ({{ severity_stats.medium.pct }}%)</li>
+                            <li><span class="legend-dot dot-high"></span>High &mdash; {{ severity_stats.high.count }} ({{ severity_stats.high.pct }}%)</li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="severity-placeholder">
+                        {{ icon_gauge() }}
+                        <div>Not yet available &mdash; no reports have had their AI analysis run yet.</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

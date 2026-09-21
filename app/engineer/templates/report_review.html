@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, severity_badge, icon_clipboard, icon_check, icon_gauge %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('queue', user) }}
+    <main class="app-main">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+            <a href="/engineer/queue" class="d-inline-block">&larr; Back to Review Queue</a>
+            <a href="/engineer/reports/{{ report.id }}/pdf">Export as PDF &rarr;</a>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <h2 class="page-title mb-0">Report RPT-{{ '%04d'|format(report.id) }}</h2>
+            <span style="font-size:0.9rem;">Severity: {{ severity_badge(severity_label) }}</span>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded mb-3" style="max-width:100%; max-height:320px; object-fit:cover;">
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_clipboard('') }}</div>
+                            <h6 class="mb-0">Inspector's Notes</h6>
+                        </div>
+                        <p class="mb-1 text-body" style="font-size:0.92rem;">
+                            {% if report.site_notes %}{{ report.site_notes }}
+                            {% elif report.structure_age %}Structure is {{ report.structure_age }} old. Surface condition: {{ report.surface_condition }}. Crack {{ 'is' if report.actively_growing == 'Yes' else ('does not appear to be' if report.actively_growing == 'No' else 'may or may not be') }} actively growing.
+                            {% else %}No additional notes were recorded.{% endif %}
+                        </p>
+                        <p class="text-muted mb-0" style="font-size:0.82rem;">Submitted by {{ inspector_name }} on {{ (report.created_at | localtime).strftime("%b %d, %Y") }}</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="icon-badge icon-badge-sm">{{ icon_check('') }}</div>
+                            <h6 class="mb-0">Your Decision</h6>
+                        </div>
+
+                        <form method="post" action="/engineer/reports/{{ report.id }}" class="mb-3">
+                            <div class="mb-3">
+                                <label class="form-label">Remarks</label>
+                                <textarea name="engineer_remarks" class="form-control" rows="3">{{ report.engineer_remarks or "" }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Treatment / Solution</label>
+                                <textarea name="treatment" class="form-control" rows="3" placeholder="What should be done about this? (e.g. seal the crack, resurface the section, monitor for now)">{{ report.treatment or "" }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="Under Review" {% if report.status == "Under Review" %}selected{% endif %}>Under Review</option>
+                                    <option value="Reviewed" {% if report.status == "Reviewed" %}selected{% endif %}>Reviewed</option>
+                                    <option value="Resolved" {% if report.status == "Resolved" %}selected{% endif %}>Resolved</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Assessment</button>
+                        </form>
+
+                        {% if report.status != "Resolved" %}
+                        <a href="/engineer/reports/{{ report.id }}/mark-resolved" class="btn btn-outline-primary btn-sm mb-2">Mark Resolved</a>
+                        {% endif %}
+                        <div></div>
+
+                        {% if report.status in ("Reviewed", "Resolved") %}
+                            {% if report.follow_up_photo_path %}
+                            <a href="/engineer/reports/{{ report.id }}/follow-up" class="btn btn-outline-primary btn-sm">View Follow-up Comparison &rarr;</a>
+                            {% elif report.follow_up_requested_at %}
+                            <span class="text-muted" style="font-size:0.85rem;">Waiting for the Inspector to submit the requested follow-up photo.</span>
+                            {% else %}
+                            <a href="/engineer/reports/{{ report.id }}/follow-up/new" class="btn btn-outline-primary btn-sm">Request Follow-up Scan &rarr;</a>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-muted" style="font-size:0.85rem;">Follow-up Scan becomes available once this report is Reviewed or Resolved.</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_gauge('') }}</div>
+                            <h6 class="mb-0">AI Analysis</h6>
+                        </div>
+                        {% if not analysis_done %}
+                        <p class="text-muted mb-3" style="font-size:0.9rem;">Analysis hasn't been run on this report yet. Click below to run the AI models on this photo.</p>
+                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+                            <button type="submit" class="btn btn-primary w-100">Run Analysis</button>
+                        </form>
+                        {% else %}
+                        <div class="finding-row">
+                            <span class="label">Crack Detected</span>
+                            <span class="value">
+                                {% if ai_label %}
+                                <span class="badge {{ 'bg-danger' if ai_label == 'Cracked' else 'bg-success' }}">{{ ai_label }}</span>
+                                {% else %}
+                                <span class="text-muted">Not yet available</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="finding-row">
+                            <span class="label">Crack Type</span>
+                            <span class="value">
+                                {% if type_label %}{{ type_label }}{% if type_confidence %} ({{ type_confidence }}%){% endif %}
+                                {% else %}<span class="text-muted">Not yet available</span>{% endif %}
+                            </span>
+                        </div>
+                        <div class="finding-row">
+                            <span class="label">Confidence</span>
+                            <span class="value">{{ ai_confidence ~ "%" if ai_confidence is not none else "—" }}</span>
+                        </div>
+                        <div class="finding-row">
+                            <span class="label">Severity (AI)</span>
+                            <span class="value">{{ severity_badge(severity_label) }}</span>
+                        </div>
+                        {% if severity_label == "No crack shape detected" %}
+                        <p class="placeholder-note mt-2 mb-2">The AI didn't find a confident, traceable crack shape in this photo. This can genuinely happen -- the trained model finds a shape in roughly 4 out of 10 truly cracked photos (see PROJECT_LOG.md section 59), so this isn't unusual on its own.</p>
+                        {% elif severity_label == "Analysis error" %}
+                        <p class="placeholder-note mt-2 mb-2 text-danger">Something went wrong while analyzing this photo. Try Re-run Analysis below -- if it keeps happening, the photo file itself may be the issue.</p>
+                        {% endif %}
+                        {% if annotated_photo_path %}
+                        <p class="text-muted mb-1" style="font-size:0.82rem;">AI-traced crack outline:</p>
+                        <img src="/uploads/{{ annotated_photo_path }}" class="img-fluid rounded mb-2" style="max-width:100%; max-height:200px; object-fit:cover;">
+                        {% endif %}
+                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Re-run Analysis</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

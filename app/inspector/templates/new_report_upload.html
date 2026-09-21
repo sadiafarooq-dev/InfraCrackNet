@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import wizard_header, icon_camera %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ wizard_header(1, "Upload") }}
+
+<div class="wizard-card reveal">
+    <h3 class="mb-1">Upload Photo or Video</h3>
+    <p class="text-muted mb-4">Capture a clear shot of the crack or damage. You can add more than one.</p>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/inspector/reports/new/upload" enctype="multipart/form-data">
+        <div class="dropzone mb-4" data-camera-capture>
+            <div class="cam-badge">{{ icon_camera('') }}</div>
+            <div class="dz-main mb-2">Take a photo or upload from your gallery</div>
+            <div class="dz-sub mb-3">JPG, PNG or MP4 &mdash; up to 25MB</div>
+
+            <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-open-camera>Open Live Camera</button>
+
+            <div class="camera-live" data-camera-live hidden>
+                <video data-camera-video autoplay playsinline muted></video>
+                <div class="camera-live-actions">
+                    <button type="button" class="btn btn-primary btn-sm" data-camera-shutter>Capture Photo</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-camera-cancel>Cancel</button>
+                </div>
+            </div>
+            <div class="camera-preview" data-camera-preview hidden>
+                <img data-camera-preview-img alt="Captured photo preview">
+                <div><button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-camera-retake>Retake</button></div>
+            </div>
+            <canvas data-camera-canvas hidden></canvas>
+
+            <input type="file" name="photo" accept="image/*" capture="environment" class="form-control" required data-camera-input>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Continue &rarr;</button>
+    </form>
+</div>
+{% endblock %}

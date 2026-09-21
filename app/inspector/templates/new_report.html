@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="page-title">New Report</h2>
+<span class="crack-accent mb-3" style="--crack-w: 90px;"></span>
+
+<div class="wizard-card col-md-6 reveal">
+<form method="post" action="/inspector/reports/new" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Photo</label>
+        <input type="file" name="photo" accept="image/*" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Surface Type</label>
+        <select name="surface_type" class="form-select" required>
+            <option value="Road">Road</option>
+            <option value="Building">Building</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Location</label>
+        <input type="text" name="location" class="form-control" placeholder="e.g. Main St Bridge, Sector G-9" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Site Notes (optional)</label>
+        <textarea name="site_notes" class="form-control" rows="3" placeholder="Age, visible conditions, anything worth mentioning..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit Report</button>
+</form>
+</div>
+{% endblock %}

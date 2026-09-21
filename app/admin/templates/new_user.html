@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_person, icon_key %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('users', user) }}
+    <main class="app-main">
+        <a href="/admin/users" class="d-inline-block mb-3">&larr; Back to User Management</a>
+        <h2 class="page-title mb-1">Add New User</h2>
+        <p class="text-muted mb-4">Create an account directly, or generate a registration code for self sign-up</p>
+
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="card p-4">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="icon-badge icon-badge-sm">{{ icon_person() }}</div>
+                        <h6 class="mb-0">Create Account Directly</h6>
+                    </div>
+                    <form method="post" action="/admin/users/new">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" name="name" class="form-control" placeholder="Employee name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" class="form-control" placeholder="name@infracracknet.com" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Role</label>
+                            <div class="role-toggle-plain">
+                                <input type="radio" name="role" id="new-role-inspector" value="Inspector" checked>
+                                <label for="new-role-inspector">Inspector</label>
+                                <input type="radio" name="role" id="new-role-engineer" value="Engineer">
+                                <label for="new-role-engineer">Engineer</label>
+                                <input type="radio" name="role" id="new-role-admin" value="Admin">
+                                <label for="new-role-admin">Admin</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card p-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="icon-badge icon-badge-sm">{{ icon_key() }}</div>
+                        <h6 class="mb-0">Or Generate a Registration Code</h6>
+                    </div>
+                    <p class="text-muted mb-3" style="font-size:0.88rem;">Share this code so staff can sign up themselves at the right role.</p>
+                    <div class="registration-code-box">{{ registration_code }}</div>
+                    <form method="post" action="/admin/settings/registration-code/regenerate">
+                        <button type="submit" class="btn btn-outline-primary w-100">Generate New Code</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

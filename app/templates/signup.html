@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "macros.html" import logo_mark, icon_person, icon_clipboard %}
+
+{% block navbar %}
+<nav class="navbar auth-header">
+    <div class="container">
+        <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
+        <a class="nav-link" href="/">&larr; Back to Home</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="auth-bg bg-blueprint">
+    {{ icon_clipboard('decor-icon', 'top:122px; left:30px; width:90px; height:90px; transform:rotate(-14deg);') }}
+    <div class="auth-card position-relative" style="max-width: 460px; z-index:1;">
+        <div class="auth-icon-wrap">{{ icon_person() }}</div>
+        <div class="text-center">
+            <h2 class="page-title d-inline-block">Create Your Account</h2>
+        </div>
+        <p class="text-center text-muted mb-4" style="font-size:0.95rem; max-width:340px; margin-left:auto; margin-right:auto;">
+            Sign up using the registration code provided by your organization
+        </p>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/signup">
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="name" class="form-control" placeholder="Your full name" value="{{ name or '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="you@organization.com" value="{{ email or '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">I'm Signing Up As</label>
+                <div class="role-toggle">
+                    <input type="radio" name="role" id="role-inspector" value="Inspector" {% if not role or role == 'Inspector' %}checked{% endif %}>
+                    <label class="role-option" for="role-inspector">Inspector</label>
+                    <input type="radio" name="role" id="role-engineer" value="Engineer" {% if role == 'Engineer' %}checked{% endif %}>
+                    <label class="role-option" for="role-engineer">Engineer</label>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Registration Code</label>
+                <input type="text" name="registration_code" class="form-control" placeholder="Provided by your admin" required>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Create password" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Create Account</button>
+        </form>
+
+        <p class="text-center mt-3 mb-0" style="font-size:0.9rem;">
+            Already have an account? <a href="/login">Sign In</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+# Secrets -- your real .env has your real SECRET_KEY and (if you set it up)
+# your Gmail App Password. This must never be uploaded to GitHub. The safe,
+# example version (.env.example) has no real secrets, so that one IS fine to
+# upload, and it isn't listed here.
+.env
+
+# Python's own generated cache files -- not source code, just speeds up
+# re-running the app on the same computer. Safe to skip, GitHub doesn't need
+# these, and every computer regenerates them on its own automatically.
+__pycache__/
+*.pyc
+
+# The live database file -- this is real, changing DATA (reports, users,
+# messages), not code. It doesn't belong in a code repository, and every
+# fresh copy of this project creates its own empty one automatically the
+# first time it runs.
+*.db
+
+# Real photos people have submitted through the app -- this is user DATA,
+# not code, and some of it could be large. Doesn't belong on GitHub.
+uploads/
+
+# The trained AI model files -- these are large binary files (not something
+# you wrote or edited), and GitHub isn't meant to store big files like this.
+# The website still finds and uses them normally on your own computer --
+# this line only stops them from being uploaded, it doesn't move or hide
+# them here.
+models/

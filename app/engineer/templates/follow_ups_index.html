@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, icon_compare %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('follow-ups', user) }}
+    <main class="app-main">
+        <h2 class="page-title mb-1">Follow-up Scan</h2>
+        <p class="text-muted mb-4">Reviewed and Resolved reports &mdash; add a follow-up photo to check whether a crack has gotten worse</p>
+
+        {% if reports %}
+        <div class="table-card">
+        <div class="table-responsive">
+            <table class="table bg-white align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Location</th>
+                        <th>Follow-up</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>RPT-{{ '%04d'|format(report.id) }}</td>
+                        <td>{{ report.location }}</td>
+                        <td>
+                            {% if report.follow_up_photo_path %}
+                            <span class="text-muted">Added {{ (report.follow_up_created_at | localtime).strftime("%b %d, %Y") }}</span>
+                            {% elif report.follow_up_requested_at %}
+                            <span class="text-muted">Waiting for Inspector</span>
+                            {% else %}
+                            <span class="text-muted">Not requested yet</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if report.follow_up_photo_path %}
+                            <a href="/engineer/reports/{{ report.id }}/follow-up">View Comparison</a>
+                            {% elif report.follow_up_requested_at %}
+                            <span class="text-muted" style="font-size:0.85rem;">&mdash;</span>
+                            {% else %}
+                            <a href="/engineer/reports/{{ report.id }}/follow-up/new">Request Follow-up</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_compare('') }}</div>
+            <h4 class="mb-2">Nothing to follow up on yet</h4>
+            <p class="text-muted mb-0">Once a report is Reviewed or Resolved, it'll show up here so you can add a follow-up photo.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

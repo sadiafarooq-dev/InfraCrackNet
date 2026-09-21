@@ -1,0 +1,497 @@
+{% macro status_badge(status) %}
+{% if status == "Submitted" %}
+<span class="badge bg-secondary">{{ status }}</span>
+{% elif status == "Under Review" %}
+<span class="badge bg-info text-dark">{{ status }}</span>
+{% elif status == "Reviewed" %}
+<span class="badge bg-warning text-dark">{{ status }}</span>
+{% elif status == "Resolved" %}
+<span class="badge bg-success">{{ status }}</span>
+{% else %}
+<span class="badge bg-secondary">{{ status }}</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro severity_badge(severity) %}
+{% if severity == "Low" %}
+<span class="badge bg-success">Low</span>
+{% elif severity == "Medium" %}
+<span class="badge bg-warning text-dark">Medium</span>
+{% elif severity == "High" %}
+<span class="badge bg-danger">High</span>
+{% elif severity == "No crack shape detected" %}
+<span class="text-muted">No crack shape detected</span>
+{% elif severity == "Analysis error" %}
+<span class="text-danger">Analysis error</span>
+{% else %}
+<span class="text-muted">Not yet available</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro logo_mark(size=28) %}
+<svg class="logo-mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoBadgeGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16273E"/>
+      <stop offset="0.55" stop-color="#1E3A5F"/>
+      <stop offset="1" stop-color="#2A4C78"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#logoBadgeGrad)"/>
+  <path d="M33 33 L39 25" stroke="#E76F2C" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M39 25 L36 19" stroke="#E76F2C" stroke-width="3.0" stroke-linecap="round"/>
+  <path d="M36 19 L42 11" stroke="#E76F2C" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M33 33 L26 27" stroke="#E76F2C" stroke-width="3.6" stroke-linecap="round"/>
+  <path d="M26 27 L29 19" stroke="#E76F2C" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M33 33 L29 41" stroke="#E76F2C" stroke-width="3.0" stroke-linecap="round"/>
+  <path d="M29 41 L33 49" stroke="#E76F2C" stroke-width="1.7" stroke-linecap="round"/>
+  <circle cx="33" cy="33" r="2.4" fill="#E76F2C"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_magnifier(cls='decor-icon', style='') %}
+<svg class="{{ cls }}" style="{{ style }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="10" cy="10" r="6.5" stroke="currentColor" stroke-width="2"/>
+  <line x1="14.8" y1="14.8" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_hardhat(cls='decor-icon', style='') %}
+<svg class="{{ cls }}" style="{{ style }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 15 C4 9.5 7.6 5.5 12 5.5 C16.4 5.5 20 9.5 20 15 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="2.5" y="15" width="19" height="2.4" rx="1.2" fill="currentColor"/>
+  <line x1="12" y1="5.5" x2="12" y2="2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_camera(cls='decor-icon', style='') %}
+<svg class="{{ cls }}" style="{{ style }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="9" y="4" width="6" height="3" rx="0.8" fill="currentColor"/>
+  <rect x="2.5" y="6.5" width="19" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+  <circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="2"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_clipboard(cls='decor-icon', style='') %}
+<svg class="{{ cls }}" style="{{ style }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="5" y="4" width="14" height="18" rx="1.6" stroke="currentColor" stroke-width="2"/>
+  <rect x="9" y="2.3" width="6" height="3" rx="0.8" fill="currentColor"/>
+  <line x1="8" y1="11" x2="16" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="8" y1="14.3" x2="16" y2="14.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="8" y1="17.6" x2="13" y2="17.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_check(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="2"/>
+  <path d="M7.5 12.5 L10.5 15.5 L16.5 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_gauge(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 15 A8 8 0 0 1 20 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="12" y1="15" x2="15.5" y2="10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="12" cy="15" r="1.4" fill="currentColor"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_lock(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="5" y="10.5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+  <path d="M8 10.5 V7.5 A4 4 0 0 1 16 7.5 V10.5" stroke="currentColor" stroke-width="2"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_mail(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="3" y="5.5" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+  <path d="M4 7 L12 13 L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_key(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="8" cy="15" r="4" stroke="currentColor" stroke-width="2"/>
+  <path d="M11 12 L20 3 M20 3 L20 7 M20 3 L16 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_person(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="8" r="3.6" stroke="currentColor" stroke-width="2"/>
+  <path d="M4.5 20 C4.5 15.6 7.8 13 12 13 C16.2 13 19.5 15.6 19.5 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+
+{% macro icon_home(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 11.5 L12 4.5 L20 11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M6 10 V19 H18 V10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M10 19 V14 H14 V19" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_plus_circle(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+  <path d="M12 8 V16 M8 12 H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_list(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="4.5" cy="6" r="1.4" fill="currentColor"/>
+  <circle cx="4.5" cy="12" r="1.4" fill="currentColor"/>
+  <circle cx="4.5" cy="18" r="1.4" fill="currentColor"/>
+  <path d="M9 6 H20 M9 12 H20 M9 18 H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_logout(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M9 4 H6 a2 2 0 0 0 -2 2 v12 a2 2 0 0 0 2 2 h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 8 L20 12 L15 16 M20 12 H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_pin(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 21 C12 21 5 14.5 5 9.5 A7 7 0 0 1 19 9.5 C19 14.5 12 21 12 21 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_compare(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 8 H16 M16 8 L12.5 4.5 M16 8 L12.5 11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 16 H8 M8 16 L11.5 12.5 M8 16 L11.5 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_trend(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M3 18 L9.5 11 L14 15 L21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 6 H21 V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_people(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2"/>
+  <path d="M3.5 20 C3.5 16.4 6 14 9 14 C12 14 14.5 16.4 14.5 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="17" cy="9" r="2.4" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M15.8 20 C15.8 17.2 17 15.3 19 15.3 C21 15.3 21.8 17.2 21.8 19.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_audit(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="5" y="3.5" width="14" height="17" rx="1.6" stroke="currentColor" stroke-width="2"/>
+  <path d="M8.5 8.5 H15.5 M8.5 12 H15.5 M8.5 15.5 H12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_inbox(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M3.5 13 H8 L9.5 15.5 H14.5 L16 13 H20.5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="3.5" y="6" width="17" height="13" rx="1.6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_warning(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 3.5 L21.5 20 H2.5 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <line x1="12" y1="10.5" x2="12" y2="14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="12" cy="17.3" r="1.1" fill="currentColor"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_retry(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 12 A8 8 0 1 1 17 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M20 3 V8 H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_bell(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 4 C9 4 7.5 6.2 7.5 9 V12 L5.5 15.5 H18.5 L16.5 12 V9 C16.5 6.2 15 4 12 4 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M9.8 18.2 A2.3 2.3 0 0 0 14.2 18.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_download(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 3 V14 M12 14 L7.5 9.5 M12 14 L16.5 9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M4 17 V19 A2 2 0 0 0 6 21 H18 A2 2 0 0 0 20 19 V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+
+{% macro illustration_scan(size=260) %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="24" y="70" width="212" height="130" rx="14" fill="#1E3A5F"/>
+  <rect x="24" y="70" width="212" height="130" rx="14" fill="url(#roadFade)" opacity="0.5"/>
+  <path d="M40 100 L70 100 M40 130 L70 130 M40 160 L70 160" stroke="#4C6789" stroke-width="4" stroke-linecap="round"/>
+  <path d="M96 82 L112 118 L100 128 L128 160 L118 172 L146 196" stroke="#E76F2C" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="130" cy="140" r="58" stroke="#F68B4D" stroke-width="2" stroke-dasharray="6 7" fill="none"/>
+  <path d="M130 82 V96 M130 184 V198 M72 140 H86 M174 140 H188" stroke="#F68B4D" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="130" cy="140" r="5" fill="#E76F2C"/>
+  <rect x="150" y="40" width="70" height="42" rx="10" fill="#fff" stroke="#F3D3BB" stroke-width="2"/>
+  <path d="M162 61 L170 69 L182 53" stroke="#3fae6a" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="191" y="65" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#1E3A5F">Cracked</text>
+  <defs>
+    <linearGradient id="roadFade" x1="24" y1="70" x2="236" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E4F7A"/>
+      <stop offset="1" stop-color="#0F1F33"/>
+    </linearGradient>
+  </defs>
+</svg>
+{% endmacro %}
+
+
+{% macro illustration_building(size=240) %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="54" y="34" width="132" height="182" rx="8" fill="#1E3A5F"/>
+  <g opacity="0.9">
+    <rect x="72" y="54" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="108" y="54" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="144" y="54" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="72" y="94" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="144" y="94" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="72" y="134" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="108" y="134" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="144" y="134" width="24" height="24" rx="3" fill="#4C6789"/>
+    <rect x="104" y="178" width="32" height="38" rx="3" fill="#0F1F33"/>
+  </g>
+  <path d="M120 34 L106 84 L118 96 L102 132 L114 148 L100 178" stroke="#E76F2C" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="114" cy="96" r="30" stroke="#F68B4D" stroke-width="2" stroke-dasharray="5 6" fill="none"/>
+  <rect x="18" y="204" width="204" height="10" rx="5" fill="#E5E7EB"/>
+</svg>
+{% endmacro %}
+
+{% macro illustration_engineer(size=220) %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="110" cy="110" r="98" fill="#FDF0E7"/>
+  <circle cx="110" cy="86" r="30" fill="#F3D3BB"/>
+  <path d="M76 86 C76 62 91 48 110 48 C129 48 144 62 144 86 Z" fill="#1E3A5F"/>
+  <rect x="72" y="84" width="76" height="12" rx="6" fill="#0F1F33"/>
+  <line x1="110" y1="48" x2="110" y2="36" stroke="#1E3A5F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M62 190 C62 156 83 138 110 138 C137 138 158 156 158 190" fill="#2E4F7A"/>
+  <rect x="86" y="150" width="48" height="60" rx="6" fill="#fff" stroke="#E5E7EB" stroke-width="2"/>
+  <path d="M96 168 H124 M96 180 H124 M96 192 H114" stroke="#4C6789" stroke-width="3" stroke-linecap="round"/>
+  <path d="M132 158 L146 144" stroke="#E76F2C" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="150" cy="140" r="7" fill="#E76F2C"/>
+</svg>
+{% endmacro %}
+
+
+{% macro illustration_workflow(size=280) %}
+<svg width="{{ size }}" height="{{ (size * 0.42) | round | int }}" viewBox="0 0 280 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M55 60 H105 M175 60 H225" stroke="#F3D3BB" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <circle cx="30" cy="60" r="28" fill="#1E3A5F"/>
+  <rect x="17" y="53" width="26" height="18" rx="2.5" stroke="#fff" stroke-width="2"/>
+  <circle cx="30" cy="62" r="5" stroke="#fff" stroke-width="2"/>
+  <circle cx="140" cy="60" r="34" stroke="#F68B4D" stroke-width="2" stroke-dasharray="4 6" fill="none"/>
+  <circle cx="140" cy="60" r="28" fill="#E76F2C"/>
+  <circle cx="136" cy="56" r="8" stroke="#fff" stroke-width="2"/>
+  <line x1="142" y1="62" x2="149" y2="69" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="250" cy="60" r="28" fill="#1E3A5F"/>
+  <rect x="240" y="46" width="20" height="28" rx="2" stroke="#fff" stroke-width="2"/>
+  <line x1="244" y1="54" x2="256" y2="54" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="244" y1="60" x2="256" y2="60" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="244" y1="66" x2="252" y2="66" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+
+{% macro crack_hero_divider(color='%23E76F2C') %}
+<svg width="100%" height="28" viewBox="0 0 400 28" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M0 16 L28 6 L52 22 L78 4 L104 20 L130 6 L156 22 L182 8 L208 20 L234 4 L260 18 L286 6 L312 22 L338 8 L364 20 L390 6" stroke="{{ color }}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+
+{% macro avatar(user, size=40) %}
+{% if user and user.profile_photo_path %}
+<img src="/uploads/{{ user.profile_photo_path }}" class="avatar-circle" style="width:{{ size }}px;height:{{ size }}px;" alt="{{ user.name }}">
+{% else %}
+<span class="avatar-circle avatar-initials" style="width:{{ size }}px;height:{{ size }}px;font-size:{{ (size / 2.3) | round | int }}px;">{{ user.initials if user else '?' }}</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro text_initials(name, size=40) %}
+{% set parts = name.split() %}
+<span class="avatar-circle avatar-initials" style="width:{{ size }}px;height:{{ size }}px;font-size:{{ (size / 2.3) | round | int }}px;">{{ (parts[0][0] + parts[-1][0]) | upper if parts|length > 1 else (parts[0][0] | upper if parts else '?') }}</span>
+{% endmacro %}
+
+
+{% macro sidebar_identity(user, role) %}
+<a href="/profile" class="sidebar-identity">
+  {{ avatar(user, 40) }}
+  <span class="sidebar-identity-text">
+    <span class="sidebar-identity-name">{{ user.name }}</span>
+    <span class="sidebar-identity-role">{{ role }}</span>
+  </span>
+</a>
+{% endmacro %}
+
+{% macro sidebar_section_label(text) %}
+<div class="sidebar-section-label">{{ text }}</div>
+{% endmacro %}
+
+
+{% macro inspector_sidebar(active, user) %}
+<aside class="app-sidebar">
+  <div class="sidebar-logo">{{ logo_mark(24) }}InfraCrackNet</div>
+  {{ sidebar_identity(user, 'Inspector') }}
+  <nav class="sidebar-nav">
+    {{ sidebar_section_label('Workspace') }}
+    <a href="/inspector/dashboard" class="{{ 'nav-active' if active == 'home' }}">{{ icon_home() }}Home</a>
+    <a href="/inspector/reports/new" class="{{ 'nav-active' if active == 'new-report' }}">{{ icon_plus_circle() }}New Report</a>
+    <a href="/inspector/reports" class="{{ 'nav-active' if active == 'my-reports' }}">{{ icon_list() }}My Reports</a>
+    {{ sidebar_section_label('Account') }}
+    <a href="/notifications" class="{{ 'nav-active' if active == 'notifications' }}">{{ icon_bell() }}Notifications</a>
+    <a href="/profile" class="{{ 'nav-active' if active == 'profile' }}">{{ icon_person() }}Profile</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="/contact-admin" class="sidebar-contact-admin">Contact Admin</a>
+    <a href="/logout" class="sidebar-signout">{{ icon_logout() }}Sign Out</a>
+  </div>
+</aside>
+{% endmacro %}
+
+{% macro wizard_header(step_num, step_label) %}
+<div class="wizard-topbar">
+    <span class="brand">InfraCrackNet</span>
+    <a href="/inspector/reports/new/cancel">Cancel</a>
+</div>
+<div class="wizard-steps">
+    {% for i in range(1, 5) %}
+    <div class="step-bar {{ 'done' if i < step_num else ('active' if i == step_num else '') }}"></div>
+    {% endfor %}
+</div>
+<p class="wizard-step-label">Step {{ step_num }} of 4 &mdash; {{ step_label }}</p>
+{% endmacro %}
+
+
+{% macro simple_topbar(cancel_href) %}
+<div class="wizard-topbar">
+    <span class="brand">InfraCrackNet</span>
+    <a href="{{ cancel_href }}">Cancel</a>
+</div>
+{% endmacro %}
+
+
+{% macro engineer_sidebar(active, user) %}
+<aside class="app-sidebar">
+  <div class="sidebar-logo">{{ logo_mark(24) }}InfraCrackNet</div>
+  {{ sidebar_identity(user, 'Engineer') }}
+  <nav class="sidebar-nav">
+    {{ sidebar_section_label('Workspace') }}
+    <a href="/engineer/dashboard" class="{{ 'nav-active' if active == 'home' }}">{{ icon_home() }}Home</a>
+    <a href="/engineer/queue" class="{{ 'nav-active' if active == 'queue' }}">{{ icon_clipboard('') }}Review Queue</a>
+    <a href="/engineer/reports" class="{{ 'nav-active' if active == 'all-reports' }}">{{ icon_list() }}All Reports</a>
+    <a href="/engineer/follow-ups" class="{{ 'nav-active' if active == 'follow-ups' }}">{{ icon_compare() }}Follow-up Scan</a>
+    {{ sidebar_section_label('Account') }}
+    <a href="/notifications" class="{{ 'nav-active' if active == 'notifications' }}">{{ icon_bell() }}Notifications</a>
+    <a href="/profile" class="{{ 'nav-active' if active == 'profile' }}">{{ icon_person() }}Profile</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="/contact-admin" class="sidebar-contact-admin">Contact Admin</a>
+    <a href="/logout" class="sidebar-signout">{{ icon_logout() }}Sign Out</a>
+  </div>
+</aside>
+{% endmacro %}
+
+
+{% macro admin_sidebar(active, user) %}
+<aside class="app-sidebar">
+  <div class="sidebar-logo">{{ logo_mark(24) }}InfraCrackNet</div>
+  {{ sidebar_identity(user, 'Admin') }}
+  <nav class="sidebar-nav">
+    {{ sidebar_section_label('Workspace') }}
+    <a href="/admin/dashboard" class="{{ 'nav-active' if active == 'overview' }}">{{ icon_home() }}Overview</a>
+    <a href="/admin/trends" class="{{ 'nav-active' if active == 'trends' }}">{{ icon_trend() }}Trends</a>
+    <a href="/admin/users" class="{{ 'nav-active' if active == 'users' }}">{{ icon_people() }}User Management</a>
+    <a href="/admin/reports" class="{{ 'nav-active' if active == 'all-reports' }}">{{ icon_list() }}All Reports</a>
+    <a href="/admin/audit-log" class="{{ 'nav-active' if active == 'audit-log' }}">{{ icon_audit() }}Audit Log</a>
+    <a href="/admin/inbox" class="{{ 'nav-active' if active == 'inbox' }}">{{ icon_inbox() }}Inbox</a>
+    {{ sidebar_section_label('Account') }}
+    <a href="/notifications" class="{{ 'nav-active' if active == 'notifications' }}">{{ icon_bell() }}Notifications</a>
+    <a href="/profile" class="{{ 'nav-active' if active == 'profile' }}">{{ icon_person() }}Profile</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <a href="/logout" class="sidebar-signout">{{ icon_logout() }}Sign Out</a>
+  </div>
+</aside>
+{% endmacro %}
+
+{% macro public_navbar(active='', user=none) %}
+<nav class="navbar navbar-expand-lg navbar-marketing">
+  <div class="container">
+    <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav" aria-controls="publicNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="publicNav">
+      <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-lg-4 gap-2 mx-lg-auto">
+        {% if active == 'home' %}<span class="nav-link current">Home</span>{% else %}<a class="nav-link" href="/">Home</a>{% endif %}
+        {% if active == 'about' %}<span class="nav-link current">About</span>{% else %}<a class="nav-link" href="/about">About</a>{% endif %}
+        {% if active == 'how-it-works' %}<span class="nav-link current">How It Works</span>{% else %}<a class="nav-link" href="/how-it-works">How It Works</a>{% endif %}
+        {% if active == 'contact' %}<span class="nav-link current">Contact Us</span>{% else %}<a class="nav-link" href="/contact-us">Contact Us</a>{% endif %}
+      </div>
+      {% if user %}
+      <a href="/profile" class="d-flex align-items-center gap-2 text-decoration-none navbar-user-link mt-2 mt-lg-0">
+        {{ avatar(user, 32) }}
+        <span class="navbar-user-name">{{ user.name }}</span>
+      </a>
+      {% else %}
+      <a href="/login" class="btn btn-primary btn-sm px-3 mt-2 mt-lg-0">Sign In</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+{% endmacro %}
+
+{% macro public_footer(active='') %}
+<footer class="footer-marketing">
+  <div class="container">
+    <div class="row gy-4">
+      <div class="col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          {{ logo_mark(24) }}<span class="footer-brand-name">InfraCrackNet</span>
+        </div>
+        <p class="footer-tagline">AI-assisted crack detection for road and building inspection teams.</p>
+      </div>
+      <div class="col-md-2">
+        <h6>Product</h6>
+        {% if active == 'home' %}<span class="footer-current">Home</span>{% else %}<a href="/">Home</a>{% endif %}
+        {% if active == 'about' %}<span class="footer-current">About</span>{% else %}<a href="/about">About</a>{% endif %}
+        {% if active == 'how-it-works' %}<span class="footer-current">How It Works</span>{% else %}<a href="/how-it-works">How It Works</a>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <h6>Account</h6>
+        <a href="/login">Sign In</a>
+        <a href="/signup">Sign Up</a>
+        {% if active == 'terms' %}<span class="footer-current">Terms &amp; Privacy</span>{% else %}<a href="/terms">Terms &amp; Privacy</a>{% endif %}
+        {% if active == 'help' %}<span class="footer-current">Help &amp; FAQ</span>{% else %}<a href="/help">Help &amp; FAQ</a>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <h6>Contact</h6>
+        {% if active == 'contact' %}<span class="footer-current">Contact Us</span>{% else %}<a href="/contact-us">Contact Us</a>{% endif %}
+      </div>
+    </div>
+    <div class="footer-bottom d-flex justify-content-between flex-wrap">
+      <span>&copy; 2026 InfraCrackNet — Final Year Project, COMSATS University Islamabad</span>
+      <span>InfraCrackNet</span>
+    </div>
+  </div>
+</footer>
+{% endmacro %}

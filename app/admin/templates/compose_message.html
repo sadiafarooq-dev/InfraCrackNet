@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_mail %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('inbox', user) }}
+    <main class="app-main">
+        <a href="/admin/inbox" class="d-inline-block mb-3">&larr; Back to Inbox</a>
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <div class="icon-badge icon-badge-sm">{{ icon_mail() }}</div>
+            <h2 class="page-title mb-0">Compose Message</h2>
+        </div>
+
+        <div class="card p-4 reveal" style="max-width:640px;">
+            <form method="post" action="/admin/inbox/compose">
+                <div class="mb-3">
+                    <label class="form-label">To</label>
+                    <select name="recipient_id" class="form-select" required>
+                        {% for r in recipients %}
+                        <option value="{{ r.id }}">{{ r.name }} ({{ r.role }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Subject</label>
+                    <input type="text" name="subject" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Message</label>
+                    <textarea name="body" class="form-control" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Message</button>
+            </form>
+            <p class="placeholder-note mt-3 mb-0">There's no email system or Inspector/Engineer inbox screen yet, so this is saved for the record &mdash; they won't automatically see it in the app yet.</p>
+        </div>
+    </main>
+</div>
+{% endblock %}

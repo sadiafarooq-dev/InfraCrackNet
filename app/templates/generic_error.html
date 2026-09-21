@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_warning, illustration_engineer %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="error-page-wrap">
+    <div class="error-content position-relative text-center mx-auto" style="max-width:446px;">
+        <div class="spot-illustration float-anim mb-2">{{ illustration_engineer(130) }}</div>
+        <div class="error-icon-badge mx-auto">{{ icon_warning() }}</div>
+        <h2 class="mb-2" style="color:var(--navy);">Something Went Wrong</h2>
+        <p class="text-muted mb-4">We couldn't load this page. Check your connection and try again.</p>
+        <a href="{{ request.url.path }}" class="btn btn-primary px-4">&#8635; Try Again</a>
+        <div class="d-flex justify-content-center gap-2 mt-4">
+            <span class="crack-accent" style="--crack-w: 60px;"></span>
+        </div>
+    </div>
+</div>
+{% endblock %}

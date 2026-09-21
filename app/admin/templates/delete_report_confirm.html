@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_warning %}
+
+
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="confirm-popup-backdrop">
+    <div class="confirm-popup-card reveal">
+        <a href="/admin/reports" class="confirm-popup-close" aria-label="Close">&times;</a>
+        <div class="confirm-icon-badge danger">{{ icon_warning() }}</div>
+        <h4 class="mb-2" style="color:var(--navy);">Delete This Report?</h4>
+        <p class="confirm-body">This permanently removes the report, its photos, and the AI findings tied to it. This can't be undone.</p>
+
+        <p class="mb-4" style="font-size:0.9rem;"><strong>RPT-{{ '%04d'|format(report.id) }}</strong> &middot; {{ report.location }}</p>
+
+        <div class="confirm-popup-actions">
+            <a href="/admin/reports" class="btn btn-outline-secondary px-4">Cancel</a>
+            <form method="post" action="/admin/reports/{{ report.id }}/delete">
+                <button type="submit" class="btn btn-danger px-4">Delete Report</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

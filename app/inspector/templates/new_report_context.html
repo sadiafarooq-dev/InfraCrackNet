@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "macros.html" import wizard_header %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ wizard_header(3, "Context") }}
+
+<div class="wizard-card" style="max-width:620px;">
+    <h3 class="mb-1">A Few Quick Questions</h3>
+    <p class="text-muted mb-4">This helps the Engineer judge the situation &mdash; it doesn't change the AI's analysis.</p>
+
+    <form method="post" action="/inspector/reports/new/context">
+        <div class="mb-4 reveal">
+            <p class="fw-semibold mb-2">Approximate age of the structure</p>
+            <div class="option-row">
+                {% for opt in ["< 5 yrs", "5-15 yrs", "15+ yrs"] %}
+                <div class="option-choice">
+                    <input type="radio" name="structure_age" id="age-{{ loop.index }}" value="{{ opt }}" {% if structure_age == opt or (not structure_age and loop.first) %}checked{% endif %}>
+                    <label for="age-{{ loop.index }}">{{ opt }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-4 reveal">
+            <p class="fw-semibold mb-2">Visible surface condition</p>
+            <div class="option-row">
+                {% for opt in ["Dry", "Damp", "Wet"] %}
+                <div class="option-choice">
+                    <input type="radio" name="surface_condition" id="cond-{{ loop.index }}" value="{{ opt }}" {% if surface_condition == opt or (not surface_condition and loop.first) %}checked{% endif %}>
+                    <label for="cond-{{ loop.index }}">{{ opt }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-4 reveal">
+            <p class="fw-semibold mb-2">Is the crack actively growing?</p>
+            <div class="option-row">
+                {% for opt in ["Yes", "No", "Not sure"] %}
+                <div class="option-choice">
+                    <input type="radio" name="actively_growing" id="grow-{{ loop.index }}" value="{{ opt }}" {% if actively_growing == opt or (not actively_growing and loop.first) %}checked{% endif %}>
+                    <label for="grow-{{ loop.index }}">{{ opt }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Suspected cause <span class="text-muted" style="font-weight:400;">(optional)</span></label>
+            <textarea name="cause" class="form-control" rows="2" placeholder="e.g. water pooling, heavy vehicle load, old repair failing again -- leave blank if you're not sure">{{ cause }}</textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="/inspector/reports/new/location" class="btn btn-outline-primary" style="flex:0 0 140px;">&larr; Back</a>
+            <button type="submit" class="btn btn-primary flex-grow-1">Continue &rarr;</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

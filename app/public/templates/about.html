@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "macros.html" import public_navbar, public_footer, icon_magnifier, illustration_building %}
+
+{% block navbar %}{{ public_navbar('about', user) }}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+
+<section class="hero-section position-relative bg-blueprint">
+    {{ icon_magnifier('decor-icon', 'top:20px; left:6%; width:80px; height:80px; transform:rotate(-10deg);') }}
+    <div class="container position-relative" style="z-index:1;">
+        <span class="eyebrow">ABOUT US</span>
+        <h1 class="hero-headline hero-headline-sm">Built to Catch <span class="hl-accent">Damage</span> Before It Spreads</h1>
+        <p class="hero-subtext">InfraCrackNet is a final year project at COMSATS University Islamabad, built to make crack inspection for roads and buildings faster, more consistent, and easier to track from first photo to final fix.</p>
+        <span class="crack-accent mx-auto" style="--crack-w: 160px;"></span>
+    </div>
+</section>
+
+<section class="section-block">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-md-7 reveal">
+                <span class="eyebrow">OUR MISSION</span>
+                <h3 class="fw-bold mb-3">Catching problems while they're still small</h3>
+                <p class="text-muted mb-0">Cracks in roads and buildings are usually reported too late, after they have already become expensive or dangerous. InfraCrackNet gives inspection teams a simple way to capture a photo, get an instant AI read on severity, and route it to the right engineer — so small problems get fixed while they are still small.</p>
+            </div>
+            <div class="col-md-5 text-center reveal">
+                <div class="spot-illustration float-anim mb-3">{{ illustration_building(200) }}</div>
+                <div class="stats-card mx-auto">
+                    <div class="stat-row"><span class="stat-num">3</span><span>AI models working together</span></div>
+                    <div class="stat-row"><span class="stat-num">4</span><span>Roles: Inspector, Engineer, Admin, System</span></div>
+                    <div class="stat-row"><span class="stat-num">1</span><span>Goal: catch it before it spreads</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block footer %}{{ public_footer('about') }}{% endblock %}

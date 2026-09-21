@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_mail %}
+
+
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{% if user.role == 'Inspector' %}
+{% set close_href = '/inspector/dashboard' %}
+{% elif user.role == 'Engineer' %}
+{% set close_href = '/engineer/dashboard' %}
+{% else %}
+{% set close_href = '/' %}
+{% endif %}
+
+<div class="confirm-popup-backdrop">
+    <div class="confirm-popup-card text-start">
+        <a href="{{ close_href }}" class="confirm-popup-close" aria-label="Close">&times;</a>
+        <div class="confirm-icon-badge">{{ icon_mail() }}</div>
+        <h4 class="mb-1" style="color:var(--navy);">Contact Admin</h4>
+        <p class="confirm-body">Send a message to your Admin team &mdash; they'll reply in your Inbox.</p>
+
+        {% if sent %}
+        <div class="alert alert-success">Sent. Your Admin team will follow up.</div>
+        <a href="{{ close_href }}" class="btn btn-primary">Back to Dashboard</a>
+        {% else %}
+        <form method="post" action="/contact-admin">
+            <div class="mb-3">
+                <label class="form-label">Subject</label>
+                <input type="text" name="subject" class="form-control" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Message</label>
+                <textarea name="body" class="form-control" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Send Message</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

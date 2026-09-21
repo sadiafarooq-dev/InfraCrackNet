@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_audit %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('audit-log', user) }}
+    <main class="app-main">
+        <h2 class="page-title mb-1">Audit Log</h2>
+        <p class="text-muted mb-4">A record of every account and report action, starting from when this was built</p>
+
+        <div class="card table-card">
+            {% if entries %}
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr class="reveal">
+                            <td>{{ (entry.created_at | localtime).strftime("%b %d, %Y · %I:%M %p") }}</td>
+                            <td>{{ entry.actor_name }}</td>
+                            <td><span class="audit-action-badge">{{ entry.action }}</span></td>
+                            <td>{{ entry.details }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-muted d-flex align-items-center gap-2">
+                <div class="icon-badge icon-badge-sm">{{ icon_audit() }}</div>
+                <span>Nothing recorded yet &mdash; real actions (new accounts, report reviews, status changes) will start showing up here as they happen.</span>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

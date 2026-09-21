@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_warning %}
+
+
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="confirm-popup-backdrop">
+    <div class="confirm-popup-card reveal">
+        <a href="/admin/users/{{ target.id }}/edit" class="confirm-popup-close" aria-label="Close">&times;</a>
+        <div class="confirm-icon-badge danger">{{ icon_warning() }}</div>
+        <h4 class="mb-2" style="color:var(--navy);">Remove This User?</h4>
+        <p class="confirm-body">This will permanently remove their account and sign-in access. Reports they already submitted or reviewed will stay in the system.</p>
+
+        <p class="mb-4" style="font-size:0.9rem;"><strong>{{ target.name }}</strong> &middot; {{ target.employee_code }}</p>
+
+        <div class="confirm-popup-actions">
+            <a href="/admin/users/{{ target.id }}/edit" class="btn btn-outline-secondary px-4">Cancel</a>
+            <form method="post" action="/admin/users/{{ target.id }}/remove">
+                <button type="submit" class="btn btn-danger px-4">Remove User</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

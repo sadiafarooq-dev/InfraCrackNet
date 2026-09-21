@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import logo_mark, icon_hardhat %}
+
+
+
+{% block navbar %}
+<nav class="navbar auth-header-admin">
+    <div class="container">
+        <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
+        <a class="nav-link" href="/">&larr; Back to Home</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="auth-admin-bg bg-blueprint">
+    <div class="auth-card auth-card-admin position-relative" style="z-index:1;">
+        <div class="text-center">
+            <span class="auth-badge-admin">Admin Access</span>
+        </div>
+        <div class="auth-icon-wrap auth-icon-wrap-admin">{{ icon_hardhat() }}</div>
+        <div class="text-center">
+            <h2 class="page-title d-inline-block">Staff Portal</h2>
+        </div>
+        <p class="text-center text-muted mb-4" style="font-size:0.95rem;">Admin sign-in for InfraCrackNet</p>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/admin/login">
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="you@organization.com" required>
+            </div>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between">
+                    <label class="form-label">Password</label>
+                    <a href="/forgot-password" style="font-size:0.85rem;">Forgot password?</a>
+                </div>
+                <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

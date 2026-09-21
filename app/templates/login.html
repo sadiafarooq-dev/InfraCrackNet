@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "macros.html" import logo_mark, icon_lock, icon_magnifier %}
+
+{% block navbar %}
+<nav class="navbar auth-header">
+    <div class="container">
+        <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
+        <a class="nav-link" href="/">&larr; Back to Home</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="auth-bg bg-blueprint">
+    {{ icon_magnifier('decor-icon', 'top:130px; left:20px; width:90px; height:90px; transform:rotate(14deg);') }}
+    <div class="auth-card position-relative" style="z-index:1;">
+        <div class="auth-icon-wrap">{{ icon_lock() }}</div>
+        <div class="text-center">
+            <h2 class="page-title d-inline-block">Welcome Back</h2>
+        </div>
+        <p class="text-center text-muted mb-4" style="font-size:0.95rem;">Sign in with your InfraCrackNet employee account</p>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+
+        <form method="post" action="/login">
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="you@organization.com" required>
+            </div>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between">
+                    <label class="form-label">Password</label>
+                    <a href="/forgot-password" style="font-size:0.85rem;">Forgot password?</a>
+                </div>
+                <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        </form>
+
+        <p class="text-center mt-3 mb-0" style="font-size:0.9rem;">
+            Don't have an account? <a href="/signup">Sign up</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

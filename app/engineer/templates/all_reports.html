@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, status_badge, severity_badge %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('all-reports', user) }}
+    <main class="app-main">
+        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+            <h2 class="page-title mb-0">All Reports</h2>
+            <form method="get" action="/engineer/reports" style="max-width:320px; width:100%;">
+                <input type="text" name="q" class="form-control" placeholder="Search by ID or location" value="{{ q }}">
+            </form>
+        </div>
+
+        {% if rows %}
+        <div class="table-card">
+        <div class="table-responsive">
+            <table class="table bg-white align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Location</th>
+                        <th>Submitted</th>
+                        <th>Type</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td><a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }}</a></td>
+                        <td>{{ row.report.location }}</td>
+                        <td>{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</td>
+                        <td>{% if row.type_label %}{{ row.type_label }}{% else %}<span class="text-muted">Not yet available</span>{% endif %}</td>
+                        <td>{{ severity_badge(row.severity) }}</td>
+                        <td>{{ status_badge(row.report.status) }}</td>
+                        <td><a href="/engineer/reports/{{ row.report.id }}">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
+        {% else %}
+        <p class="text-muted">{% if q %}No reports match "{{ q }}".{% else %}No reports have been submitted yet.{% endif %}</p>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

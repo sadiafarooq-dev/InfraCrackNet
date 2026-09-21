@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_trend %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('trends', user) }}
+    <main class="app-main">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+            <div>
+                <span class="eyebrow">ANALYTICS</span>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="icon-badge icon-badge-sm">{{ icon_trend() }}</div>
+                    <h2 class="page-title mb-1">Trends</h2>
+                </div>
+                <p class="text-muted mb-0">Crack detection trends across regions and time</p>
+            </div>
+            <div class="filter-tabs">
+                <a href="/admin/trends?range=month" class="{{ 'tab-active' if range == 'month' }}">This Month</a>
+                <a href="/admin/trends?range=quarter" class="{{ 'tab-active' if range == 'quarter' }}">This Quarter</a>
+                <a href="/admin/trends?range=year" class="{{ 'tab-active' if range == 'year' }}">This Year</a>
+            </div>
+        </div>
+
+        <div class="card p-4 mb-3">
+            <h6 class="mb-3">Reports Over Time</h6>
+            <div class="trend-bars">
+                {% for b in buckets %}
+                <div class="trend-bar-col">
+                    <span class="bar-value">{{ b.count }}</span>
+                    <div class="bar-fill" style="height:{{ b.height_pct }}%; min-height:2px;"></div>
+                    <span class="bar-label">{{ b.label }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card p-4 mb-3">
+            <h6 class="mb-3">Top Affected Locations</h6>
+            {% if top_locations %}
+            {% for loc in top_locations %}
+            <div class="location-row reveal">
+                <span class="location-name">{{ loc.location }}</span>
+                <div class="location-track"><div class="location-fill" style="width:{{ loc.width_pct }}%;"></div></div>
+                <span class="location-count">{{ loc.count }}</span>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted mb-0">No reports have been submitted yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="card p-4">
+            <h6 class="mb-3">Reports by Status</h6>
+            {% if status_breakdown and (status_breakdown | sum(attribute='count')) > 0 %}
+            <div class="stacked-bar">
+                {% for s in status_breakdown %}
+                {% if s.count > 0 %}
+                <div class="segment-{{ s.slug }}" style="width:{{ s.pct }}%;"></div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="status-legend">
+                {% for s in status_breakdown %}
+                <span><span class="legend-dot dot-{{ s.slug }}"></span>{{ s.label }} &middot; {{ s.pct }}%</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No reports have been submitted yet.</p>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

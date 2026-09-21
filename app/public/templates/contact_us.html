@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "macros.html" import public_navbar, public_footer, icon_magnifier %}
+
+{% block navbar %}{{ public_navbar('contact', user) }}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+
+<section class="hero-section hero-left position-relative bg-blueprint">
+    {{ icon_magnifier('decor-icon', 'top:20px; left:6%; width:80px; height:80px; transform:rotate(-10deg);') }}
+    <div class="container position-relative" style="z-index:1; max-width: 880px;">
+        <span class="eyebrow">CONTACT US</span>
+        <h1 class="hero-headline hero-headline-sm" style="margin-left:0;">Let's Talk</h1>
+        <p class="hero-subtext" style="margin-left:0;">Questions, feedback, or a report you need help with — send us a message.</p>
+        <span class="crack-accent" style="--crack-w: 70px;"></span>
+    </div>
+</section>
+
+<section class="section-block">
+    <div class="container" style="max-width: 880px;">
+        {% if sent %}
+        <div class="alert alert-success">Thanks — your message has been sent. We'll get back to you within 1–2 business days.</div>
+        {% endif %}
+        <div class="row g-4">
+            <div class="col-md-7 reveal">
+                <div class="contact-form-card">
+                    <form method="post" action="/contact-us">
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">Your Name</label>
+                                <input type="text" name="name" class="form-control" placeholder="Full name" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" class="form-control" placeholder="you@organization.com" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <input type="text" name="subject" class="form-control" placeholder="What's this about?" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message</label>
+                            <textarea name="message" class="form-control" rows="4" placeholder="Tell us more..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Send Message</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-5 reveal">
+                <div class="contact-info-card">
+                    <h5 class="fw-semibold mb-3">Reach Us Directly</h5>
+                    <div class="label">Email</div>
+                    <div class="value">support@infracracknet.com</div>
+                    <div class="label">Response time</div>
+                    <div class="value">Within 1–2 business days</div>
+                    <div class="label">Built at</div>
+                    <div class="value mb-0">COMSATS University Islamabad</div>
+                    <span class="crack-accent mt-3" style="--crack-w: 66px;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block footer %}{{ public_footer('contact') }}{% endblock %}

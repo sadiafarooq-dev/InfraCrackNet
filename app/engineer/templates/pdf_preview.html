@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "macros.html" import logo_mark %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="pdf-topbar">
+    <a href="/engineer/reports/{{ report.id }}">&larr; Back</a>
+    <span class="fw-semibold" style="color:var(--navy);">Export Report &mdash; RPT-{{ '%04d'|format(report.id) }}</span>
+    <a href="/engineer/reports/{{ report.id }}/pdf/download" class="btn btn-primary btn-sm">&darr; Download PDF</a>
+</div>
+
+<div class="pdf-page-wrap">
+    <div class="pdf-page">
+        <div class="letterhead">
+            <span class="brand d-flex align-items-center gap-2">{{ logo_mark(22) }}InfraCrackNet</span>
+            <span class="text-muted" style="font-size:0.85rem;">Generated {{ now }}</span>
+        </div>
+
+        <h3 class="mb-3">Inspection Report &mdash; RPT-{{ '%04d'|format(report.id) }}</h3>
+
+        <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
+
+        <div class="pdf-detail-grid">
+            <div class="col">
+                <div class="col-label">Location</div>
+                <div class="col-value">{{ report.location }}</div>
+            </div>
+            <div class="col">
+                <div class="col-label">Status</div>
+                <div class="col-value">{{ report.status }}</div>
+            </div>
+            <div class="col">
+                <div class="col-label">Reviewed By</div>
+                <div class="col-value">{{ reviewer.name if reviewer else "Not yet reviewed" }}</div>
+            </div>
+            <div class="col">
+                <div class="col-label">Submitted</div>
+                <div class="col-value">{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</div>
+            </div>
+        </div>
+
+        <h6 class="mb-2">Engineer's Notes</h6>
+        <p class="mb-0" style="font-size:0.92rem;">
+            {% if report.engineer_remarks %}{{ report.engineer_remarks }}
+            {% else %}<span class="text-muted">Not yet available &mdash; the automatic cause/treatment reference feature is still being built. This section will show the Engineer's own written remarks once a review has been saved.</span>{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}

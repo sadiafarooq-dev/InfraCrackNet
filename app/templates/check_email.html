@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "macros.html" import logo_mark, icon_mail, icon_camera %}
+
+{% block navbar %}
+<nav class="navbar auth-header">
+    <div class="container">
+        <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
+        <a class="nav-link" href="/">&larr; Back to Home</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="auth-bg bg-blueprint" style="min-height: 560px;">
+    {{ icon_camera('decor-icon', 'top:130px; left:20px; width:80px; height:80px; transform:rotate(12deg);') }}
+    <div class="auth-card position-relative" style="z-index:1;">
+        <div class="auth-icon-wrap">{{ icon_mail() }}</div>
+        <div class="text-center">
+            <h2 class="page-title d-inline-block">Check Your Email</h2>
+        </div>
+        {% if really_sent %}
+        <p class="text-center text-muted mb-3" style="font-size:0.95rem; max-width:340px; margin-left:auto; margin-right:auto;">
+            We've sent a real password reset email to {{ email }}. Click the link in that email to continue &mdash; it expires in 30 minutes. (Don't see it? Check your Spam/Junk folder too.)
+        </p>
+        {% else %}
+        <p class="text-center text-muted mb-3" style="font-size:0.95rem; max-width:340px; margin-left:auto; margin-right:auto;">
+            We tried to send a password reset link to {{ email }}. Click the link below to continue &mdash; it expires in 30 minutes.
+        </p>
+
+        {% if reset_link %}
+        <div class="alert alert-info" style="font-size:0.85rem;">
+            Real email sending isn't turned on for this computer yet, so instead of landing in
+            your inbox, your actual reset link is right here &mdash; it works exactly like the
+            emailed one would.
+            <div class="mt-2">
+                <a href="{{ reset_link }}" class="btn btn-primary btn-sm w-100">Continue to Reset Password</a>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <form method="post" action="/forgot-password/resend">
+            <input type="hidden" name="email" value="{{ email }}">
+            <button type="submit" class="btn btn-outline-secondary w-100">Resend Email</button>
+        </form>
+
+        <p class="text-center mt-3 mb-0" style="font-size:0.9rem;">
+            <a href="/login">Back to Sign In</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

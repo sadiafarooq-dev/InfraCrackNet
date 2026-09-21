@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_person %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('users', user) }}
+    <main class="app-main">
+        <a href="/admin/users" class="d-inline-block mb-3">&larr; Back to User Management</a>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <div class="icon-badge icon-badge-sm">{{ icon_person() }}</div>
+            <h2 class="page-title mb-0">Edit User &mdash; {{ target.name }}</h2>
+        </div>
+        <p class="text-muted mb-4">Update account details or change status</p>
+
+        <div class="card p-4" style="max-width:640px;">
+            <form method="post" action="/admin/users/{{ target.id }}/edit">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="name" value="{{ target.name }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" name="email" value="{{ target.email }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Account Status</label>
+                    <div class="role-toggle-plain" style="max-width:280px;">
+                        <input type="radio" name="status" id="status-active" value="Active" {% if target.status == 'Active' %}checked{% endif %}>
+                        <label for="status-active">Active</label>
+                        <input type="radio" name="status" id="status-suspended" value="Suspended" {% if target.status == 'Suspended' %}checked{% endif %}>
+                        <label for="status-suspended">Suspended</label>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="/admin/users/{{ target.id }}/remove" class="btn btn-outline-danger">Remove Account</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+{% endblock %}

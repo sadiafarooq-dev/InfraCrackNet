@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, illustration_scan %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block head_extra %}
+<meta http-equiv="refresh" content="4.5;url=/engineer/reports/{{ report.id }}">
+{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('queue', user) }}
+    <main class="app-main">
+        <div class="analyzing-wrap">
+            <div class="analyzing-card">
+                <div class="spot-illustration float-anim mb-3">{{ illustration_scan(120) }}</div>
+                <h4 class="mb-1">Analyzing Report RPT-{{ '%04d'|format(report.id) }}</h4>
+                <p class="text-muted mb-4" style="font-size:0.9rem;">Running the trained AI models on this photo&hellip;</p>
+
+                <div class="analyzing-bar-track mb-4">
+                    <div class="analyzing-bar-fill"></div>
+                </div>
+
+                <ul class="analyzing-steps">
+                    <li class="analyzing-step" style="animation-delay:0.1s;">
+                        <span class="step-label">Checking for crack presence&hellip;</span>
+                        <span class="step-result" style="animation-delay:1.3s;">
+                            {% if ai_label %}
+                            &check; Crack Detected: <strong>{{ ai_label }}</strong> ({{ ai_confidence }}%)
+                            {% else %}
+                            &check; Not yet available
+                            {% endif %}
+                        </span>
+                    </li>
+                    {% if is_road %}
+                    <li class="analyzing-step" style="animation-delay:1.8s;">
+                        <span class="step-label">Classifying road damage type&hellip;</span>
+                        <span class="step-result" style="animation-delay:3.0s;">
+                            {% if type_label %}
+                            &check; Crack Type: <strong>{{ type_label }}</strong>{% if type_confidence %} ({{ type_confidence }}%){% endif %}
+                            {% else %}
+                            &check; Not yet available
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li class="analyzing-step" style="animation-delay:3.4s;">
+                        <span class="step-label">Tracing crack shape &amp; severity&hellip;</span>
+                        <span class="step-result" style="animation-delay:4.0s;">
+                            {% if severity_label %}
+                            &check; Severity: <strong>{{ severity_label }}</strong>
+                            {% else %}
+                            &check; Not yet available
+                            {% endif %}
+                        </span>
+                    </li>
+                    {% else %}
+                    <li class="analyzing-step" style="animation-delay:1.8s;">
+                        <span class="step-label">Tracing crack shape &amp; severity&hellip;</span>
+                        <span class="step-result" style="animation-delay:3.0s;">
+                            {% if severity_label %}
+                            &check; Severity: <strong>{{ severity_label }}</strong>
+                            {% else %}
+                            &check; Not yet available
+                            {% endif %}
+                        </span>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <p class="text-muted mt-4 mb-0" style="font-size:0.82rem;">Taking you back to the report&hellip;</p>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

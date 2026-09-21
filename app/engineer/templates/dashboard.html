@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_gauge %}
+{% block content %}
+<div class="icon-badge icon-badge-navy mb-3">{{ icon_gauge() }}</div>
+<h2 class="page-title">Welcome, {{ user.name }}</h2>
+<p>You are logged in as an Engineer.</p>
+<p>The real Engineer dashboard is coming in a later stage.</p>
+{% endblock %}

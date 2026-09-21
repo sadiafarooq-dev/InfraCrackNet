@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "macros.html" import inspector_sidebar, status_badge %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ inspector_sidebar('home', user) }}
+    <main class="app-main">
+        <div class="mb-4">
+            <h2 class="page-title">Welcome back, {{ user.name.split(" ")[0] }}</h2>
+            <p class="text-muted mb-0">Inspector &middot; Here is what needs your attention today</p>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card reveal">
+                    <div class="stat-num">{{ stats.total }}</div>
+                    <div class="stat-label">Total Reports</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card reveal">
+                    <div class="stat-num">{{ stats.pending }}</div>
+                    <div class="stat-label">Pending Review</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card reveal">
+                    <div class="stat-num">{{ stats.resolved }}</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-banner d-flex justify-content-between align-items-center mb-4 reveal">
+            <div>
+                <h5>Spotted a crack?</h5>
+                <p>Submit a new report with a photo and location in under a minute.</p>
+            </div>
+            <a href="/inspector/reports/new" class="btn btn-primary">New Report</a>
+        </div>
+
+        <h5 class="mb-3">Recent Reports</h5>
+        {% if recent_reports %}
+        <div class="table-card">
+        <div class="table-responsive">
+            <table class="table bg-white align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Location</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in recent_reports %}
+                    <tr class="reveal">
+                        <td><a href="/inspector/reports/{{ report.id }}">RPT-{{ '%04d'|format(report.id) }}</a></td>
+                        <td>{{ report.location }}</td>
+                        <td>{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</td>
+                        <td>{{ status_badge(report.status) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
+        {% else %}
+        <p class="text-muted">You haven't submitted any reports yet &mdash; use the New Report button above to add your first one.</p>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

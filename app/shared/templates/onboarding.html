@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import logo_mark, icon_check, icon_camera, icon_clipboard %}
+
+
+
+{% block navbar %}
+<div class="onboarding-topbar">
+    <span class="brand">{{ logo_mark(24) }}InfraCrackNet</span>
+    {% if content.next %}<a href="/onboarding/finish">Skip</a>{% endif %}
+</div>
+{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="bg-blueprint">
+<div class="onboarding-wrap reveal">
+    <div class="onboarding-icon-badge float-anim">
+        {% if content.icon == 'check' %}{{ icon_check() }}
+        {% elif content.icon == 'camera' %}{{ icon_camera() }}
+        {% else %}{{ icon_clipboard() }}{% endif %}
+    </div>
+    <h2 class="page-title d-inline-block">{{ content.title }}</h2>
+    <p class="onboarding-body">{{ content.body }}</p>
+    <div class="onboarding-dots">
+        <span class="{{ 'active' if step == 1 }}"></span>
+        <span class="{{ 'active' if step == 2 }}"></span>
+        <span class="{{ 'active' if step == 3 }}"></span>
+    </div>
+    {% if content.next %}
+    <a href="/onboarding/{{ content.next }}" class="btn btn-primary px-4">{{ content.button }}</a>
+    {% else %}
+    <a href="/onboarding/finish" class="btn btn-primary px-4">{{ content.button }}</a>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

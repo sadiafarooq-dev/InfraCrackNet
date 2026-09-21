@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import simple_topbar, icon_compare %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ simple_topbar("/engineer/reports/" ~ report.id) }}
+
+<div class="wizard-card">
+    <div class="d-flex justify-content-center">
+        <div class="icon-badge icon-badge-lg icon-badge-navy mb-3">{{ icon_compare() }}</div>
+    </div>
+    <p class="text-muted mb-1" style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;">Follow-up &middot; RPT-{{ '%04d'|format(report.id) }}</p>
+    {% if waiting_on_inspector %}
+    <h3 class="mb-3">Waiting for the Inspector</h3>
+    <p class="text-muted mb-4">A follow-up photo has already been requested for this report. The Inspector will see it on their Report Detail page and submit a new photo of the same spot -- the comparison will show up here automatically once they do.</p>
+    <a href="/engineer/reports/{{ report.id }}" class="btn btn-outline-primary w-100">&larr; Back to Report</a>
+    {% else %}
+    <h3 class="mb-3">Request a Follow-up Photo</h3>
+    <p class="text-muted mb-4">This asks the Inspector who submitted this report to take (or upload) a new photo of the same spot, so you can compare it against the original. You'll be notified the moment they submit it.</p>
+    <form method="post" action="/engineer/reports/{{ report.id }}/follow-up/request">
+        <button type="submit" class="btn btn-primary w-100">Request Follow-up &rarr;</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

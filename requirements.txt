@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+sqlmodel
+bcrypt
+itsdangerous
+python-dotenv
+torch
+torchvision
+pillow
+reportlab
+ultralytics

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, text_initials, icon_inbox %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('inbox', user) }}
+    <main class="app-main">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h2 class="page-title mb-1">Inbox</h2>
+                <p class="text-muted mb-0">Messages and notifications from your team</p>
+            </div>
+            <a href="/admin/inbox/compose" class="btn btn-primary">+ Compose Message</a>
+        </div>
+
+        <div class="card px-3">
+            {% if messages %}
+            {% for m in messages %}
+            <a href="/admin/inbox/{{ m.id }}" class="message-row reveal">
+                {{ text_initials(m.recipient_name if m.from_admin else m.sender_name, 40) }}
+                <div class="message-text-col">
+                    <div class="message-name-row">
+                        {% if m.from_admin %}
+                        <span>To: {{ m.recipient_name }}</span>
+                        {% else %}
+                        <span>{{ m.sender_name }}</span>
+                        {% if not m.is_read %}<span class="unread-dot"></span>{% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="message-subject">{{ m.subject }}</div>
+                    <div class="message-preview">{{ m.body }}</div>
+                </div>
+                <span class="message-time">{{ (m.created_at | localtime).strftime("%b %d, %Y") }}</span>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state py-5">
+                <div class="icon-wrap">{{ icon_inbox('') }}</div>
+                <h4 class="mb-2">Nothing here yet</h4>
+                <p class="text-muted mb-0">Messages sent through Contact Us, or "Contact Admin" from any sidebar, will show up here for real.</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

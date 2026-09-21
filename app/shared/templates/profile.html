@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "macros.html" import inspector_sidebar, engineer_sidebar, admin_sidebar, avatar, icon_camera %}
+
+
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% macro profile_card(user, saved) %}
+<h2 class="page-title mb-4">My Profile</h2>
+
+{% if saved %}
+<div class="alert alert-success">Saved.</div>
+{% endif %}
+
+<div class="card p-4 reveal" style="max-width:640px;">
+    <form method="post" action="/profile" enctype="multipart/form-data">
+        <div class="profile-avatar-row">
+            <div class="avatar-upload-wrap">
+                {{ avatar(user, 64) }}
+                <label for="profile_photo" class="avatar-camera-btn" title="Change photo">{{ icon_camera('') }}</label>
+                <input type="file" name="profile_photo" id="profile_photo" accept="image/*" class="avatar-upload-input">
+            </div>
+            <div>
+                <div class="fw-semibold" style="color:var(--navy); font-size:1.1rem;">{{ user.name }}</div>
+                <span class="role-badge">{{ user.role }}</span>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="name" value="{{ user.name }}" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Employee Code</label>
+                <input type="text" value="{{ user.employee_code }}" class="form-control" disabled>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Email Address</label>
+            <input type="email" name="email" value="{{ user.email }}" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+</div>
+{% endmacro %}
+
+{% block content %}
+{% if user.role == 'Inspector' %}
+<div class="app-shell">
+    {{ inspector_sidebar('profile', user) }}
+    <main class="app-main">
+        {{ profile_card(user, saved) }}
+    </main>
+</div>
+{% elif user.role == 'Engineer' %}
+<div class="app-shell">
+    {{ engineer_sidebar('profile', user) }}
+    <main class="app-main">
+        {{ profile_card(user, saved) }}
+    </main>
+</div>
+{% else %}
+<div class="app-shell">
+    {{ admin_sidebar('profile', user) }}
+    <main class="app-main">
+        {{ profile_card(user, saved) }}
+    </main>
+</div>
+{% endif %}
+{% endblock %}

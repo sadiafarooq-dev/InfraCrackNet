@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon_check %}
+
+
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="confirm-popup-backdrop">
+    <div class="confirm-popup-card">
+        <a href="/engineer/reports/{{ report.id }}" class="confirm-popup-close" aria-label="Close">&times;</a>
+        <div class="confirm-icon-badge">{{ icon_check() }}</div>
+        <h4 class="mb-2" style="color:var(--navy);">Mark Report as Resolved?</h4>
+        <p class="confirm-body">This confirms the repair is complete and closes the report's status trail. You can still add a Follow-up Scan later if needed.</p>
+
+        <p class="mb-4" style="font-size:0.9rem;"><strong>RPT-{{ '%04d'|format(report.id) }}</strong> &middot; {{ report.location }}</p>
+
+        <div class="confirm-popup-actions">
+            <a href="/engineer/reports/{{ report.id }}" class="btn btn-outline-secondary px-4">Go Back</a>
+            <form method="post" action="/engineer/reports/{{ report.id }}/mark-resolved">
+                <button type="submit" class="btn btn-primary px-4">Mark Resolved</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

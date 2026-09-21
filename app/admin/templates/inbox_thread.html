@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_mail %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('inbox', user) }}
+    <main class="app-main">
+        <a href="/admin/inbox" class="d-inline-block mb-3">&larr; Back to Inbox</a>
+
+        <div class="card p-4 mb-3">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="icon-badge icon-badge-sm">{{ icon_mail() }}</div>
+                <h4 class="mb-0">{{ message.subject }}</h4>
+            </div>
+            <p class="text-muted mb-2" style="font-size:0.9rem;">
+                {% if message.from_admin %}
+                To {{ message.recipient_name }} &middot; {{ (message.created_at | localtime).strftime("%b %d, %Y, %I:%M %p") }}
+                {% else %}
+                From {{ message.sender_name }} &middot; {{ (message.created_at | localtime).strftime("%b %d, %Y, %I:%M %p") }}
+                {% endif %}
+            </p>
+            <span class="crack-accent mb-3" style="--crack-w: 55px;"></span>
+            <p class="mb-0" style="white-space:pre-wrap;">{{ message.body }}</p>
+        </div>
+
+        {% if message.reply_body %}
+        <div class="card p-4 mb-3" style="background:#fafbfc;">
+            <h6 class="mb-2">Your Reply</h6>
+            <p class="text-muted mb-2" style="font-size:0.85rem;">Sent {{ (message.replied_at | localtime).strftime("%b %d, %Y, %I:%M %p") }}</p>
+            <p class="mb-0" style="white-space:pre-wrap;">{{ message.reply_body }}</p>
+        </div>
+        {% endif %}
+
+        {% if not message.from_admin %}
+        <div class="card p-4">
+            <h6 class="mb-3">{{ "Send Another Reply" if message.reply_body else "Your Reply" }}</h6>
+            <form method="post" action="/admin/inbox/{{ message.id }}/reply">
+                <textarea name="reply_body" class="form-control mb-3" rows="4" placeholder="Type your reply..." required></textarea>
+                <button type="submit" class="btn btn-primary">Send Reply</button>
+            </form>
+            {% if not message.reply_body %}
+            <p class="placeholder-note mt-3 mb-0">There's no email system or Inspector/Engineer inbox screen yet, so this reply is saved here for the record &mdash; {{ message.sender_name }} won't automatically see it in the app yet.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

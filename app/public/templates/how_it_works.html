@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "macros.html" import public_navbar, public_footer, icon_hardhat %}
+
+{% block navbar %}{{ public_navbar('how-it-works', user) }}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+
+<section class="hero-section position-relative bg-blueprint">
+    {{ icon_hardhat('decor-icon', 'top:20px; right:8%; width:80px; height:80px; transform:rotate(10deg);') }}
+    <div class="container position-relative" style="z-index:1;">
+        <span class="eyebrow">HOW IT WORKS</span>
+        <h1 class="hero-headline hero-headline-sm">From First Photo to <span class="hl-accent">Final Fix</span></h1>
+        <span class="crack-accent mx-auto" style="--crack-w: 190px;"></span>
+    </div>
+</section>
+
+<section class="section-block">
+    <div class="container" style="max-width: 880px;">
+        <div class="stepper-item mb-0 reveal">
+            <div>
+                <div class="stepper-badge">1</div>
+                <div class="stepper-connector"></div>
+            </div>
+            <div>
+                <h5>Inspector captures a photo</h5>
+                <p class="text-muted">On site, the Inspector uploads a photo or short video of the crack, pins the location, and answers a few quick context questions.</p>
+            </div>
+        </div>
+        <div class="stepper-item mb-0 reveal">
+            <div>
+                <div class="stepper-badge">2</div>
+                <div class="stepper-connector"></div>
+            </div>
+            <div>
+                <h5>AI analyzes it instantly</h5>
+                <p class="text-muted">Three AI models check whether there is a crack, classify the damage type, and trace/measure its severity — in seconds.</p>
+            </div>
+        </div>
+        <div class="stepper-item mb-0 reveal">
+            <div>
+                <div class="stepper-badge">3</div>
+                <div class="stepper-connector"></div>
+            </div>
+            <div>
+                <h5>Engineer reviews and decides</h5>
+                <p class="text-muted">An Engineer checks the AI findings, confirms or overrides them, and sets the cause, treatment, and status.</p>
+            </div>
+        </div>
+        <div class="stepper-item reveal">
+            <div>
+                <div class="stepper-badge">4</div>
+            </div>
+            <div>
+                <h5>Everyone tracks it to resolution</h5>
+                <p class="text-muted">The Inspector sees the decision on their report, and Admin can watch trends and follow-ups across the whole system.</p>
+            </div>
+        </div>
+        <div class="text-center mt-5">
+            <span class="crack-accent mx-auto" style="--crack-w: 230px;"></span>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block footer %}{{ public_footer('how-it-works') }}{% endblock %}

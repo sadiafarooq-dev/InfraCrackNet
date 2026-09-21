@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, icon_clipboard, icon_warning, icon_check %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('home', user) }}
+    <main class="app-main">
+        <h2 class="page-title mb-1">Welcome back, {{ user.name.split(" ")[0] }}</h2>
+        <p class="text-muted mb-4">Here's what needs your attention today</p>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card reveal">
+                    <div class="icon-badge icon-badge-sm icon-badge-navy mb-2">{{ icon_clipboard('') }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis mb-2">Pending Review</span>
+                    <div class="stat-num">{{ stats.pending }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card reveal">
+                    <div class="icon-badge icon-badge-sm mb-2">{{ icon_warning('') }}</div>
+                    <span class="badge badge-flagged mb-2">Flagged (Low Confidence)</span>
+                    <div class="stat-num">{{ stats.flagged }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card reveal">
+                    <div class="icon-badge icon-badge-sm icon-badge-navy mb-2">{{ icon_check('') }}</div>
+                    <span class="badge bg-success-subtle text-success-emphasis mb-2">Reviewed This Week</span>
+                    <div class="stat-num">{{ stats.reviewed_week }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h6 class="mb-3">Needs Your Attention</h6>
+                {% if attention_rows %}
+                {% for row in attention_rows %}
+                <div class="attention-row reveal">
+                    <a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }} &mdash; {{ row.report.location }}</a>
+                    {% if row.flagged %}
+                    <span class="badge badge-flagged">Low Confidence</span>
+                    {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis">Pending Review</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">Nothing pending review right now &mdash; you're all caught up.</p>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

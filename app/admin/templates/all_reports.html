@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, status_badge, severity_badge, icon_clipboard %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('all-reports', user) }}
+    <main class="app-main">
+        <h2 class="page-title mb-1">All Reports</h2>
+        <p class="text-muted mb-4">Every crack report submitted across the system</p>
+
+        <div class="card table-card">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>Location</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Submitted By</th>
+                            <th>Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="reveal">
+                            <td>RPT-{{ '%04d'|format(row.report.id) }}</td>
+                            <td>{{ row.report.location }}</td>
+                            <td>{{ severity_badge(row.severity) }}</td>
+                            <td>{{ status_badge(row.report.status) }}</td>
+                            <td>{{ row.inspector_name }}</td>
+                            <td>{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</td>
+                            <td><a href="/admin/reports/{{ row.report.id }}/delete" class="text-danger" style="font-size:0.85rem;">Delete</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-muted d-flex align-items-center gap-2">
+                <div class="icon-badge icon-badge-sm">{{ icon_clipboard('') }}</div>
+                <span>No reports have been submitted yet.</span>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

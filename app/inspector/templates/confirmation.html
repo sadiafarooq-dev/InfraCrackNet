@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import inspector_sidebar, icon_check, illustration_scan %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ inspector_sidebar('new-report', user) }}
+    <main class="app-main">
+        <div class="success-card reveal">
+            <div class="spot-illustration float-anim mb-2">{{ illustration_scan(120) }}</div>
+            <div class="success-icon-wrap">{{ icon_check() }}</div>
+            <h3 class="mb-2">Report Submitted</h3>
+            <p class="text-muted mb-0">Your report has been sent for AI analysis and engineer review.</p>
+            <div class="report-id-chip">Report ID: RPT-{{ '%04d'|format(report.id) }}</div>
+            <div class="d-flex gap-2 justify-content-center mt-2">
+                <a href="/inspector/reports/{{ report.id }}" class="btn btn-outline-primary">View Report</a>
+                <a href="/inspector/dashboard" class="btn btn-primary">Back to Home</a>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

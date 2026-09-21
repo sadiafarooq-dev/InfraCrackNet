@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "macros.html" import public_navbar, public_footer, icon_magnifier %}
+
+{% block navbar %}{{ public_navbar('help', user) }}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+
+<section class="hero-section position-relative bg-blueprint">
+    {{ icon_magnifier('decor-icon', 'top:20px; right:8%; width:80px; height:80px; transform:rotate(-14deg);') }}
+    <div class="container position-relative" style="z-index:1;">
+        <span class="eyebrow">SUPPORT</span>
+        <h1 class="hero-headline hero-headline-sm">Help &amp; <span class="hl-accent">FAQ</span></h1>
+        <p class="hero-subtext">Answers to common questions about using InfraCrackNet.</p>
+        <span class="crack-accent mx-auto" style="--crack-w: 100px;"></span>
+    </div>
+</section>
+
+<section class="section-block">
+    <div class="container" style="max-width: 880px;">
+
+        <div class="faq-category">
+            <span class="eyebrow">GENERAL</span>
+            <div class="faq-card">
+                <div class="faq-q">What does InfraCrackNet actually do?</div>
+                <p class="faq-a">It looks at a photo or video of a road or building, uses AI to check for cracks, classifies the type and severity, and routes the finding to an Engineer for a real professional decision.</p>
+            </div>
+            <div class="faq-card">
+                <div class="faq-q">Is the AI's result final?</div>
+                <p class="faq-a">No. Every AI finding is reviewed by a human Engineer before anything is acted on — the AI supports the decision, it doesn't replace it.</p>
+            </div>
+        </div>
+
+        <div class="faq-category">
+            <span class="eyebrow">FOR INSPECTORS</span>
+            <div class="faq-card">
+                <div class="faq-q">Can I upload a video instead of a photo?</div>
+                <p class="faq-a">Yes. The system samples frames from the video automatically and runs each one through the same detection pipeline.</p>
+            </div>
+            <div class="faq-card">
+                <div class="faq-q">How do I know if my report was reviewed?</div>
+                <p class="faq-a">Your report's status updates live — once an Engineer finishes, it moves to "Reviewed" and you'll see their notes right on the report.</p>
+            </div>
+        </div>
+
+        <div class="faq-category">
+            <span class="eyebrow">FOR ENGINEERS</span>
+            <div class="faq-card">
+                <div class="faq-q">Can I override what the AI found?</div>
+                <p class="faq-a">Yes — the Report Review screen lets you confirm, correct, or fully override the AI's crack type, severity, and suggested treatment.</p>
+            </div>
+            <div class="faq-card">
+                <div class="faq-q">What is a Follow-up Scan?</div>
+                <p class="faq-a">After a report is reviewed, you can add a new photo of the same spot. It runs through the same AI pipeline and shows a before/after comparison on the same report thread.</p>
+            </div>
+        </div>
+
+        <div class="faq-category">
+            <span class="eyebrow">FOR ADMINS</span>
+            <div class="faq-card">
+                <div class="faq-q">How do Inspectors and Engineers get accounts?</div>
+                <p class="faq-a">You can add them directly from User Management, or they can sign up themselves with a registration code you issue.</p>
+            </div>
+            <div class="faq-card">
+                <div class="faq-q">Where do I see system-wide activity?</div>
+                <p class="faq-a">The Overview and Trends dashboards show stats and patterns across every report, and the Audit Log tracks key account and status changes.</p>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block footer %}{{ public_footer('help') }}{% endblock %}

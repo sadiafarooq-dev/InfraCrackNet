@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "macros.html" import engineer_sidebar, status_badge, icon_magnifier %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ engineer_sidebar('queue', user) }}
+    <main class="app-main">
+        {% if rows or all_count > 0 %}
+        <h2 class="page-title mb-1">Review Queue</h2>
+        <p class="text-muted mb-4">{{ all_count }} report{{ "s" if all_count != 1 else "" }} {{ "is" if all_count == 1 else "are" }} waiting on your review</p>
+
+        <div class="filter-tabs">
+            <a href="/engineer/queue?tab=all" class="{{ 'tab-active' if tab == 'all' else '' }}">All ({{ all_count }})</a>
+            <span class="tab-disabled" title="Coming once severity scoring (Model 3) is wired in">High Severity &mdash; not yet available</span>
+            <a href="/engineer/queue?tab=overdue" class="{{ 'tab-active' if tab == 'overdue' else '' }}">Overdue ({{ overdue_count }})</a>
+        </div>
+
+        {% if rows %}
+        <div class="table-card">
+        <div class="table-responsive">
+            <table class="table bg-white align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Location</th>
+                        <th>Submitted By</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td><a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }}</a></td>
+                        <td>{{ row.report.location }}</td>
+                        <td>{{ row.inspector_name }}</td>
+                        <td>{{ status_badge(row.report.status) }}</td>
+                        <td><a href="/engineer/reports/{{ row.report.id }}">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
+        {% else %}
+        <p class="text-muted">Nothing in this filter right now.</p>
+        {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_magnifier('') }}</div>
+            <h4 class="mb-2">You're all caught up!</h4>
+            <p class="text-muted mb-0">Nothing pending review right now. New reports will show up here.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
