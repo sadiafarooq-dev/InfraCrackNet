@@ -51,11 +51,15 @@
         <div class="mb-4">
             <label class="form-label">Suspected cause <span class="text-muted" style="font-weight:400;">(optional)</span></label>
             <textarea name="cause" class="form-control" rows="2" placeholder="e.g. water pooling, heavy vehicle load, old repair failing again -- leave blank if you're not sure">{{ cause }}</textarea>
+            {% if nudge_message %}
+            <p class="text-muted mt-2 mb-0" style="font-size:0.85rem;">&#128161; {{ nudge_message }}</p>
+            <input type="hidden" name="nudge_acknowledged" value="1">
+            {% endif %}
         </div>
 
         <div class="d-flex gap-2">
             <a href="/inspector/reports/new/location" class="btn btn-outline-primary" style="flex:0 0 140px;">&larr; Back</a>
-            <button type="submit" class="btn btn-primary flex-grow-1">Continue &rarr;</button>
+            <button type="submit" class="btn btn-primary flex-grow-1">{% if nudge_message %}Continue Anyway{% else %}Continue{% endif %} &rarr;</button>
         </div>
     </form>
 </div>

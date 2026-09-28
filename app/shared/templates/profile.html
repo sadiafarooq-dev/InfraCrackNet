@@ -1,50 +1,448 @@
 {% extends "base.html" %}
 {% from "macros.html" import inspector_sidebar, engineer_sidebar, admin_sidebar, avatar, icon_camera %}
 
-
-
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
 
 {% macro profile_card(user, saved) %}
-<h2 class="page-title mb-4">My Profile</h2>
+<style>
+  /* ============================================================
+     PROFILE PAGE — refined UI
+     Backend logic, form fields, routes and Jinja untouched.
+     ============================================================ */
 
-{% if saved %}
-<div class="alert alert-success">Saved.</div>
-{% endif %}
+  .pf-page {
+    --ink:        #0d1b26;
+    --ink-soft:   #2a4557;
+    --ink-muted:  #6b8395;
+    --line:       #e3ebf1;
+    --line-soft:  #eff4f8;
+    --paper:      #ffffff;
+    --canvas:     #f4f7fa;
+    --accent:     #0f6fa8;
+    --accent-dk:  #0a5586;
+    --accent-lt:  #e8f3fa;
+    --navy:       #0d1b26;
+    --green:      #1a7f4b;
+    --green-lt:   #e6f6ed;
+    --radius-lg:  20px;
+    --radius-md:  12px;
+    --shadow-sm:  0 1px 2px rgba(13,27,38,.04), 0 2px 8px rgba(13,27,38,.03);
+    --shadow-md:  0 2px 6px rgba(13,27,38,.05), 0 16px 36px -12px rgba(13,27,38,.14);
+  }
 
-<div class="card p-4 reveal" style="max-width:640px;">
-    <form method="post" action="/profile" enctype="multipart/form-data">
-        <div class="profile-avatar-row">
-            <div class="avatar-upload-wrap">
-                {{ avatar(user, 64) }}
-                <label for="profile_photo" class="avatar-camera-btn" title="Change photo">{{ icon_camera('') }}</label>
-                <input type="file" name="profile_photo" id="profile_photo" accept="image/*" class="avatar-upload-input">
+  .pf-page .app-main {
+    background: var(--canvas);
+    padding: 2.25rem 2.5rem 4rem;
+    min-height: 100vh;
+  }
+  @media (max-width: 991px) {
+    .pf-page .app-main { padding: 1.25rem 1rem 3rem; }
+  }
+
+  /* ---------- page heading ---------- */
+  .pf-heading { margin-bottom: 1.5rem; }
+  .pf-heading .eyebrow {
+    display: block;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    color: var(--accent-dk);
+    margin-bottom: .35rem;
+  }
+  .pf-heading h2 {
+    margin: 0;
+    font-size: clamp(1.5rem, 2.5vw, 1.95rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .pf-heading .sub {
+    margin: .35rem 0 0;
+    font-size: .9rem;
+    color: var(--ink-muted);
+    line-height: 1.5;
+  }
+
+  /* ---------- success alert ---------- */
+  .pf-alert {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    background: var(--green-lt);
+    border: 1px solid #b7e4c8;
+    color: var(--green);
+    border-radius: var(--radius-md);
+    padding: .85rem 1.15rem;
+    font-size: .9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    max-width: 860px;
+    box-shadow: var(--shadow-sm);
+    animation: pfFade .3s ease;
+  }
+  .pf-alert .glyph {
+    width: 22px; height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    flex-shrink: 0;
+    font-size: .72rem;
+    font-weight: 900;
+  }
+  @keyframes pfFade {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- card ---------- */
+  .pf-card {
+    max-width: 860px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  /* ---------- header band ---------- */
+  .pf-band {
+    position: relative;
+    padding: 2rem 2.25rem;
+    background: linear-gradient(135deg, #0d1b26 0%, #163a52 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+    overflow: hidden;
+  }
+  .pf-band::before {
+    content: "";
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(74,155,201,.28) 0%, transparent 68%);
+    pointer-events: none;
+  }
+  .pf-band::after {
+    content: "";
+    position: absolute;
+    bottom: -80px; left: 30%;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(74,155,201,.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* avatar */
+  .pf-avatar {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+  }
+  .pf-avatar .ring {
+    display: inline-flex;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, rgba(255,255,255,.5), rgba(255,255,255,.08));
+    box-shadow: 0 8px 24px -6px rgba(0,0,0,.35);
+  }
+  .pf-avatar .avatar-upload-wrap {
+    position: relative;
+    display: inline-flex;
+    border-radius: 50%;
+    overflow: visible;
+  }
+  .pf-avatar .avatar-camera-btn {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent-dk);
+    color: #fff;
+    cursor: pointer;
+    border: 3px solid #163a52;
+    transition: transform .16s ease, background .16s ease;
+    z-index: 2;
+  }
+  .pf-avatar .avatar-camera-btn:hover {
+    transform: scale(1.08);
+    background: var(--accent);
+  }
+  .pf-avatar .avatar-upload-input {
+    position: absolute;
+    width: 1px; height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* band meta */
+  .pf-band .meta {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+  .pf-band .name {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: .5rem;
+  }
+  .pf-band .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+  }
+  .pf-band .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .32rem .8rem;
+    border-radius: 100px;
+    background: rgba(255,255,255,.12);
+    color: #cfe3f0;
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .pf-band .chip .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74,222,128,.25);
+  }
+  .pf-band .chip.mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .06em;
+    color: #cfe3f0;
+  }
+  .pf-band .chip.mono strong {
+    color: #fff;
+    font-weight: 800;
+    margin-left: .15rem;
+  }
+
+  /* ---------- body ---------- */
+  .pf-body { padding: 2rem 2.25rem 2.25rem; }
+  @media (max-width: 640px) {
+    .pf-band { padding: 1.5rem 1.35rem; }
+    .pf-body { padding: 1.5rem 1.35rem 1.75rem; }
+  }
+
+  .pf-section-label {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--ink-muted);
+    margin-bottom: 1.25rem;
+  }
+  .pf-section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .pf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+  }
+  .pf-field { display: flex; flex-direction: column; min-width: 0; }
+  .pf-field.full { grid-column: 1 / -1; }
+  .pf-field label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-bottom: .5rem;
+    letter-spacing: .01em;
+  }
+  .pf-field label .lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px; height: 14px;
+    color: var(--ink-muted);
+  }
+  .pf-field input {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    background: #fbfdfe;
+    border-radius: var(--radius-md);
+    padding: .85rem 1rem;
+    font-size: .93rem;
+    color: var(--ink);
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  }
+  .pf-field input::placeholder { color: #9fb2c0; }
+  .pf-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(15,111,168,.10);
+  }
+  .pf-field input:disabled {
+    background: var(--canvas);
+    color: var(--ink-muted);
+    cursor: not-allowed;
+    font-weight: 600;
+    letter-spacing: .04em;
+    font-variant-numeric: tabular-nums;
+    border-style: dashed;
+    border-color: #d7e2ec;
+  }
+  .pf-field .hint {
+    margin-top: .4rem;
+    font-size: .74rem;
+    color: var(--ink-muted);
+    letter-spacing: .01em;
+    line-height: 1.4;
+  }
+
+  /* ---------- actions ---------- */
+  .pf-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--line);
+  }
+  .pf-actions .note {
+    font-size: .8rem;
+    color: var(--ink-muted);
+    line-height: 1.4;
+  }
+  .pf-save {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    border: none;
+    border-radius: 100px;
+    padding: .85rem 1.85rem;
+    font-size: .92rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    color: #fff;
+    background: var(--ink);
+    cursor: pointer;
+    transition: all .18s ease;
+  }
+  .pf-save:hover {
+    background: var(--accent-dk);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -8px rgba(10,85,134,.45);
+  }
+  .pf-save:active { transform: translateY(0); }
+  .pf-save svg { flex-shrink: 0; }
+</style>
+
+<div class="pf-page">
+    <div class="pf-heading">
+        <span class="eyebrow">Account</span>
+        <h2>My Profile</h2>
+        <p class="sub">Manage your personal details and profile photo.</p>
+    </div>
+
+    {% if saved %}
+    <div class="pf-alert">
+        <span class="glyph">✓</span>
+        <span>Your changes have been saved.</span>
+    </div>
+    {% endif %}
+
+    <div class="pf-card">
+        <form method="post" action="/profile" enctype="multipart/form-data">
+
+            <!-- ---------- header band ---------- -->
+            <div class="pf-band">
+                <div class="pf-avatar">
+                    <div class="ring">
+                        <div class="avatar-upload-wrap">
+                            {{ avatar(user, 64) }}
+                            <label for="profile_photo" class="avatar-camera-btn" title="Change photo">{{ icon_camera('') }}</label>
+                            <input type="file" name="profile_photo" id="profile_photo" accept="image/*" class="avatar-upload-input">
+                        </div>
+                    </div>
+                </div>
+                <div class="meta">
+                    <div class="name">{{ user.name }}</div>
+                    <div class="chips">
+                        <span class="chip">
+                            <span class="dot"></span>
+                            {{ user.role }}
+                        </span>
+                        <span class="chip mono">
+                            ID&nbsp;<strong>{{ user.employee_code }}</strong>
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div class="fw-semibold" style="color:var(--navy); font-size:1.1rem;">{{ user.name }}</div>
-                <span class="role-badge">{{ user.role }}</span>
-            </div>
-        </div>
 
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Full Name</label>
-                <input type="text" name="name" value="{{ user.name }}" class="form-control" required>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Employee Code</label>
-                <input type="text" value="{{ user.employee_code }}" class="form-control" disabled>
-            </div>
-        </div>
+            <!-- ---------- form body ---------- -->
+            <div class="pf-body">
 
-        <div class="mb-4">
-            <label class="form-label">Email Address</label>
-            <input type="email" name="email" value="{{ user.email }}" class="form-control" required>
-        </div>
+                <div class="pf-section-label">Personal Information</div>
 
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-    </form>
+                <div class="pf-grid">
+                    <div class="pf-field">
+                        <label for="pf-name">Full Name</label>
+                        <input type="text" name="name" id="pf-name" value="{{ user.name }}" class="form-control" required>
+                    </div>
+
+                    <div class="pf-field">
+                        <label for="pf-emp">
+                            Employee Code
+                            <span class="lock" title="Cannot be changed">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </span>
+                        </label>
+                        <input type="text" id="pf-emp" value="{{ user.employee_code }}" class="form-control" disabled>
+                        <span class="hint">Assigned by your organisation, cannot be changed.</span>
+                    </div>
+
+                    <div class="pf-field full">
+                        <label for="pf-email">Email Address</label>
+                        <input type="email" name="email" id="pf-email" value="{{ user.email }}" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="pf-actions">
+                    <span class="note">Changes are applied to your account immediately.</span>
+                    <button type="submit" class="pf-save">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 {% endmacro %}
 

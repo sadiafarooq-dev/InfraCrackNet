@@ -12,6 +12,31 @@
 
     <img src="/uploads/{{ draft.photo_path }}" class="img-fluid rounded mb-4" style="max-height:220px; object-fit:cover;">
 
+    {% if draft.source_type == "video" and draft.surface_type == "Road" %}
+    <div class="summary-row reveal">
+        <span class="label">From video</span>
+        <span class="value">
+            This is the frame our AI was most confident about in your uploaded video &mdash;
+            {% if draft.model2_label and draft.model2_label != "No damage type detected" %}
+            damage type: {{ draft.model2_label }}{% if draft.model2_confidence %} ({{ draft.model2_confidence }}%){% endif %} &mdash; the full list of everything spotted in this frame is on the report page after you submit
+            {% else %}
+            no confident road damage type found
+            {% endif %}
+            (severity: {{ draft.model3_severity or "unknown" }}).
+        </span>
+    </div>
+    {% elif draft.source_type == "video" %}
+    <div class="summary-row reveal">
+        <span class="label">From video</span>
+        <span class="value">
+            This is the most severe frame our AI found in your uploaded video &mdash;
+            ~floor {{ "%.1f"|format(draft.estimated_floor) if draft.estimated_floor is not none else "?" }}
+            of {{ draft.total_floors }}, ~{{ "%.1f"|format(draft.estimated_height_meters) if draft.estimated_height_meters is not none else "?" }}m up
+            (severity: {{ draft.model3_severity or "unknown" }}).
+        </span>
+    </div>
+    {% endif %}
+
     <div class="mb-4">
         <div class="summary-row reveal">
             <span class="label">Location</span>

@@ -25,6 +25,29 @@
         </div>
 
         <div class="card p-4 mb-3">
+            <h6 class="mb-2">AI Trend Insights</h6>
+            {% if trend_summary %}
+            <p class="mb-3" style="font-size:0.92rem;">{{ trend_summary }}</p>
+            <form method="post" action="/admin/trends/summarize">
+                <input type="hidden" name="range" value="{{ range }}">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Regenerate</button>
+            </form>
+            {% elif trend_summary_error %}
+            <p class="text-danger mb-3" style="font-size:0.9rem;">{{ trend_summary_error }}</p>
+            <form method="post" action="/admin/trends/summarize">
+                <input type="hidden" name="range" value="{{ range }}">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Try Again</button>
+            </form>
+            {% else %}
+            <p class="text-muted mb-3" style="font-size:0.9rem;">Get a short, plain-English summary of what these trends show.</p>
+            <form method="post" action="/admin/trends/summarize">
+                <input type="hidden" name="range" value="{{ range }}">
+                <button type="submit" class="btn btn-sm btn-primary">Generate Insights</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="card p-4 mb-3">
             <h6 class="mb-3">Reports Over Time</h6>
             <div class="trend-bars">
                 {% for b in buckets %}

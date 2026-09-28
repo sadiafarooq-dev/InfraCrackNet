@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import wizard_header, icon_camera %}
+{% from "macros.html" import wizard_header, icon_camera, icon_check, icon_road, icon_building_floor %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -16,7 +16,7 @@
     {% endif %}
 
     <form method="post" action="/inspector/reports/new/upload" enctype="multipart/form-data">
-        <div class="dropzone mb-4" data-camera-capture>
+        <div class="dropzone mb-3" data-camera-capture>
             <div class="cam-badge">{{ icon_camera('') }}</div>
             <div class="dz-main mb-2">Take a photo or upload from your gallery</div>
             <div class="dz-sub mb-3">JPG, PNG or MP4 &mdash; up to 25MB</div>
@@ -36,8 +36,55 @@
             </div>
             <canvas data-camera-canvas hidden></canvas>
 
-            <input type="file" name="photo" accept="image/*" capture="environment" class="form-control" required data-camera-input>
+            <input type="file" name="photo" accept="image/*,video/mp4" capture="environment" class="form-control" required data-camera-input data-file-input>
         </div>
+
+        {# -- "You picked a file" confirmation chip, redesigned section 80. Before
+           this, the only feedback after choosing a file from the gallery was the
+           browser's own tiny "<filename>" text next to the Choose File button --
+           easy to miss, and no indication at all of whether it was read as a
+           photo or a video. Hidden by default; shown by camera-capture.js once a
+           file is actually selected (and hidden again while the live-camera photo
+           preview above is showing its own picture, so there's never two
+           "you picked something" indicators on screen at once). #}
+        <div class="file-chip mb-4" data-file-chip hidden>
+            <div class="icon-badge icon-badge-sm">{{ icon_check('') }}</div>
+            <div class="file-chip-body">
+                <div class="file-chip-name" data-file-chip-name></div>
+                <div class="file-chip-meta" data-file-chip-meta></div>
+            </div>
+            <button type="button" class="file-chip-change" data-file-chip-change>Change</button>
+        </div>
+
+        {# -- Video-only options, redesigned section 80. Before this, the Road/
+           Building question and the floor-count field were always on screen,
+           with two long paragraphs explaining that they're "ignored for a
+           normal photo" -- meaning every photo upload (the common case) had to
+           read past a wall of video-only text that didn't apply to them at all.
+           Now this whole block starts hidden and only appears once
+           camera-capture.js detects the chosen file is actually a video -- a
+           photo upload never sees it. #}
+        <div class="video-options mb-4" data-video-options hidden>
+            <p class="fw-semibold mb-2">This is a video &mdash; what does it show?</p>
+            <div class="option-row mb-2">
+                <div class="option-choice">
+                    <input type="radio" name="video_surface_type" id="video-surface-road" value="Road" checked>
+                    <label for="video-surface-road">{{ icon_road('option-choice-icon') }}Road</label>
+                </div>
+                <div class="option-choice">
+                    <input type="radio" name="video_surface_type" id="video-surface-building" value="Building">
+                    <label for="video-surface-building">{{ icon_building_floor('option-choice-icon') }}Building</label>
+                </div>
+            </div>
+            <div class="form-text mb-3" data-video-hint>We&rsquo;ll scan the footage frame-by-frame for road damage (potholes, alligator cracking, etc) and box the clearest frame.</div>
+
+            <div data-floor-field hidden>
+                <label class="form-label">How many floors does the building have?</label>
+                <input type="number" name="video_total_floors" min="1" class="form-control" placeholder="e.g. 8">
+                <div class="form-text">Used to estimate which floor/height each part of the video was filmed at.</div>
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary w-100">Continue &rarr;</button>
     </form>
 </div>

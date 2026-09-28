@@ -13,15 +13,44 @@
 
     <div class="map-placeholder mb-4">{{ icon_pin('') }}</div>
 
+    {% if exif_latitude and exif_longitude %}
+    <div class="location-found-panel mb-3">
+        <p class="mb-1"><strong>We found the real location saved inside your photo/video</strong> ({{ "%.5f"|format(exif_latitude) }}, {{ "%.5f"|format(exif_longitude) }}) &mdash; this is where it was actually taken, not just where you happen to be uploading from.</p>
+        <p class="text-muted mb-0" id="exif-location-status" style="font-size:0.85rem;">Looking up the address for this location...</p>
+    </div>
+    {% else %}
+    <p class="text-muted mb-3" style="font-size:0.85rem;">We checked this photo/video for a real location saved inside it, but didn't find one -- common if the phone had Location turned off, or for a screenshot/older file. You can use your device's current location below as a fallback, or just type the address in by hand.</p>
+    {% endif %}
+
     <form method="post" action="/inspector/reports/new/location">
+        <div class="mb-3 d-flex align-items-center flex-wrap gap-2">
+            <button type="button" id="use-my-location-btn" class="btn btn-outline-primary btn-sm btn-locate">{{ icon_pin('') }} {{ "Use my device's current location instead" if (exif_latitude and exif_longitude) else "Use My Current Location" }}</button>
+            <span id="location-status" class="text-muted location-status"></span>
+        </div>
+        {% if exif_latitude and exif_longitude %}
+        <p class="form-text mb-3">This button is only a fallback -- it reflects where your device is right now, which may be a different place than where the photo/video was actually taken. The location found above is the trustworthy one.</p>
+        {% endif %}
         <div class="mb-4">
             <label class="form-label">Address / Landmark</label>
-            <input type="text" name="location" class="form-control" placeholder="Main St Bridge, Sector G-9" value="{{ location }}" required>
+            <input type="text" id="location-input" name="location" class="form-control" placeholder="Main St Bridge, Sector G-9" value="{{ location }}" required>
+            <div class="form-text">You can type this in by hand, or use the button above.</div>
         </div>
+        <input type="hidden" id="latitude-input" name="latitude" value="{{ latitude or exif_latitude or '' }}">
+        <input type="hidden" id="longitude-input" name="longitude" value="{{ longitude or exif_longitude or '' }}">
+        <input type="hidden" id="location-source-input" name="location_source" value="{{ 'exif' if (exif_latitude and exif_longitude) else '' }}">
         <div class="d-flex gap-2">
             <a href="/inspector/reports/new/upload" class="btn btn-outline-primary" style="flex:0 0 140px;">&larr; Back</a>
             <button type="submit" class="btn btn-primary flex-grow-1">Continue &rarr;</button>
         </div>
     </form>
 </div>
+
+{% if exif_latitude and exif_longitude %}
+<script>
+    // Handed to geolocation.js so it can auto-fill the address for the
+    // real location we already found in the file, instead of waiting for
+    // the Inspector to press a button. See static/js/geolocation.js.
+    window.__infracracknet_exif_location = { lat: {{ exif_latitude }}, lon: {{ exif_longitude }} };
+</script>
+{% endif %}
 {% endblock %}

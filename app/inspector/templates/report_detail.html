@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import inspector_sidebar, status_badge, severity_badge %}
+{% from "macros.html" import inspector_sidebar, status_badge, condition_score_badge, icon_gauge, icon_building_floor, icon_road, stat_tile, crack_measurement_stat, ai_hero, gps_badge %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -9,10 +9,14 @@
     {{ inspector_sidebar('my-reports', user) }}
     <main class="app-main">
         <a href="/inspector/dashboard" class="d-inline-block mb-2">&larr; Back to Home</a>
-        <div class="d-flex align-items-center gap-2 mb-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
             <h2 class="page-title mb-0">Report RPT-{{ '%04d'|format(report.id) }}</h2>
             {{ status_badge(report.status) }}
         </div>
+        <p class="text-muted mb-4" style="font-size:0.9rem;">
+            {{ report.location }}
+            {{ gps_badge(report) }}
+        </p>
 
         {% if follow_up_pending %}
         <div class="card mb-3 reveal" style="border-left: 4px solid var(--orange);">
@@ -38,46 +42,96 @@
                             {% elif report.structure_age %}Structure is {{ report.structure_age }} old. Surface condition: {{ report.surface_condition }}. Crack {{ 'is' if report.actively_growing == 'Yes' else ('does not appear to be' if report.actively_growing == 'No' else 'may or may not be') }} actively growing.
                             {% else %}No additional notes were recorded.{% endif %}
                         </p>
+                        {% if report.cause %}
+                        <p class="mb-0 text-body mt-2" style="font-size:0.92rem;"><strong>Suspected cause (your note):</strong> {{ report.cause }}</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-5">
-                <div class="card mb-3 reveal">
+                <div class="card mb-3 reveal ai-analysis-card">
                     <div class="card-body">
-                        <h6 class="mb-3">AI Analysis</h6>
-                        {% if ai_label %}
-                        <div class="finding-row">
-                            <span class="label">Crack Detected</span>
-                            <span class="value">
-                                <span class="badge {{ 'bg-danger' if ai_label == 'Cracked' else 'bg-success' }}">{{ ai_label }}</span>
-                                {{ ai_confidence }}%
-                            </span>
+                        {% if report.source_type == "video" and report.surface_type == "Road" %}
+                        {# -- Dedicated ROAD video-report layout (PROJECT_LOG.md section 70,
+                           redesigned section 77) -- matches engineer/templates/report_review.html. #}
+                        {{ ai_hero(annotated_photo_path or type_boxes_photo_path, severity_label, severity_confidence, eyebrow='Road survey video') }}
+                        <div class="stat-tile-grid">
+                            {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=true) }}
+                            {{ stat_tile(icon_gauge(''), 'PCI Score', condition_score_badge(condition_score, condition_rating), tone=('orange' if condition_score is not none else 'muted')) }}
+                            {{ stat_tile(icon_road(''), 'Crack Type', type_label if type_label else 'Not yet available', caption=(type_confidence|string ~ '% confidence' if type_confidence else ''), tone=('navy' if type_label else 'muted')) }}
                         </div>
-                        {% elif analysis_done %}
-                        <p class="text-muted mb-0" style="font-size:0.9rem;">Pending analysis &mdash; the AI model file isn't in place yet.</p>
+                        <div class="media-row">
+                            {% if type_boxes_photo_path and annotated_photo_path %}
+                            <div class="media-item">
+                                <img src="/uploads/{{ type_boxes_photo_path }}" alt="AI-detected damage, boxed and labeled">
+                                <div class="media-caption">Boxed &amp; labeled detection</div>
+                            </div>
+                            {% endif %}
+                            {% if report.video_path %}
+                            <div class="media-item">
+                                <video src="/uploads/{{ report.video_path }}" controls></video>
+                                <div class="media-caption">Original uploaded video</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% elif report.source_type == "video" %}
+                        {# -- Dedicated BUILDING video-report layout (PROJECT_LOG.md section 69,
+                           redesigned section 77) -- matches engineer/templates/report_review.html. #}
+                        {{ ai_hero(annotated_photo_path, severity_label, severity_confidence, eyebrow='Building walkthrough video') }}
+                        <div class="stat-tile-grid">
+                            {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=true) }}
+                            {% if report.estimated_floor is not none %}
+                            {{ stat_tile(icon_building_floor(''), 'Floor / Height', ("%.1f"|format(report.estimated_floor)) ~ " of " ~ (report.total_floors|string), caption='~' ~ ("%.1f"|format(report.estimated_height_meters)) ~ 'm up &middot; estimated from video timing', tone='orange', wide=true) }}
+                            {% endif %}
+                        </div>
+                        <div class="media-row">
+                            {% if report.video_path %}
+                            <div class="media-item">
+                                <video src="/uploads/{{ report.video_path }}" controls></video>
+                                <div class="media-caption">Original uploaded video</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="ai-secondary-row">
+                            <span class="text-muted">PCI Score</span>
+                            <span class="text-muted">Not applicable &mdash; road-only metric</span>
+                        </div>
                         {% else %}
+                        {# -- Photo report layout (Road or Building), redesigned section 77. #}
+                        {% if not ai_label and not analysis_done %}
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_gauge('') }}</div>
+                            <h6 class="mb-0">AI Analysis</h6>
+                        </div>
                         <p class="text-muted mb-0" style="font-size:0.9rem;">Pending analysis &mdash; the Engineer hasn't run it yet.</p>
+                        {% else %}
+                        {% if not ai_label and analysis_done %}
+                        <p class="text-muted mb-2" style="font-size:0.85rem;">Pending analysis &mdash; the AI model file isn't in place yet.</p>
                         {% endif %}
-                        <div class="finding-row">
-                            <span class="label">Crack Type</span>
-                            <span class="value">
-                                {% if type_label %}{{ type_label }}{% if type_confidence %} ({{ type_confidence }}%){% endif %}
-                                {% else %}<span class="text-muted">Not yet available</span>{% endif %}
-                            </span>
+                        {# -- Crack-presence status (was labeled "Model 1 (crack presence)")
+                           moved above the picture and renamed, per Sadia's request -- see
+                           PROJECT_LOG.md section 84. #}
+                        <div class="crack-presence-row">
+                            <span class="crack-presence-label">Crack Presence</span>
+                            {% if ai_label %}<span class="badge {{ 'bg-danger' if ai_label == 'Cracked' else 'bg-success' }}">{{ ai_label }}</span> <span class="crack-presence-confidence">{{ ai_confidence }}% confidence</span>
+                            {% else %}<span class="text-muted">Not yet available</span>{% endif %}
                         </div>
-                        <div class="finding-row">
-                            <span class="label">Severity</span>
-                            <span class="value">{{ severity_badge(severity_label) }}</span>
+                        {{ ai_hero(annotated_photo_path, severity_label, severity_confidence, eyebrow='AI-traced crack outline') }}
+                        <div class="stat-tile-grid">
+                            {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=true) }}
+                            {{ stat_tile(icon_road(''), 'Crack Type', type_label if type_label else 'Not yet available', caption=(type_confidence|string ~ '% confidence' if type_confidence else ''), tone=('navy' if type_label else 'muted')) }}
+                            {% if report.surface_type == "Road" %}
+                            {{ stat_tile(icon_gauge(''), 'PCI Score', condition_score_badge(condition_score, condition_rating), tone=('orange' if condition_score is not none else 'muted')) }}
+                            {% endif %}
                         </div>
-                        {% if severity_label == "No crack shape detected" %}
-                        <p class="placeholder-note mt-2 mb-2">The AI didn't find a confident, traceable crack shape in this photo. This can genuinely happen -- the trained model finds a shape in roughly 4 out of 10 truly cracked photos, so this isn't unusual.</p>
-                        {% elif severity_label == "Analysis error" %}
-                        <p class="placeholder-note mt-2 mb-2 text-danger">Something went wrong while analyzing this photo. Ask your Engineer to try Re-run Analysis.</p>
+                        {% if report.surface_type != "Road" %}
+                        <div class="ai-secondary-row">
+                            <span class="text-muted">PCI Score</span>
+                            <span class="text-muted">Not applicable &mdash; road-only metric</span>
+                        </div>
                         {% endif %}
-                        {% if annotated_photo_path %}
-                        <p class="text-muted mb-1" style="font-size:0.82rem;">AI-traced crack outline:</p>
-                        <img src="/uploads/{{ annotated_photo_path }}" class="img-fluid rounded mb-2" style="max-width:100%; max-height:200px; object-fit:cover;">
+                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -91,8 +145,12 @@
                             <span style="font-size:0.92rem;">{{ reviewer.name if reviewer else "Unknown" }}, Engineer</span>
                         </div>
                         <div class="decision-field mb-3">
+                            <div class="field-label">Summary</div>
+                            <div class="field-value{{ ' text-muted' if not report.ai_summary }}" style="font-size:0.9rem;">{{ report.ai_summary if report.ai_summary else "Not yet provided by the Engineer" }}</div>
+                        </div>
+                        <div class="decision-field mb-3">
                             <div class="field-label">Cause</div>
-                            <div class="field-value{{ ' text-muted' if not report.cause }}" style="font-size:0.9rem;">{{ report.cause if report.cause else "Not noted by the Inspector" }}</div>
+                            <div class="field-value{{ ' text-muted' if not report.engineer_cause }}" style="font-size:0.9rem;">{{ report.engineer_cause if report.engineer_cause else "Not yet assessed by the Engineer" }}</div>
                         </div>
                         <div class="decision-field mb-3">
                             <div class="field-label">Treatment</div>

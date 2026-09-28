@@ -42,7 +42,6 @@
                 <button type="submit" class="btn btn-primary">Send Reply</button>
             </form>
             {% if not message.reply_body %}
-            <p class="placeholder-note mt-3 mb-0">There's no email system or Inspector/Engineer inbox screen yet, so this reply is saved here for the record &mdash; {{ message.sender_name }} won't automatically see it in the app yet.</p>
             {% endif %}
         </div>
         {% endif %}

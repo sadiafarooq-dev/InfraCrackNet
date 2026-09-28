@@ -1,143 +1,957 @@
 {% extends "base.html" %}
-{% from "macros.html" import engineer_sidebar, severity_badge, icon_clipboard, icon_check, icon_gauge %}
+{% from "macros.html" import engineer_sidebar, severity_badge, condition_score_badge, icon_clipboard, icon_check, icon_gauge, icon_building_floor, icon_road, icon_list, icon_target, stat_tile, crack_measurement_stat, ai_hero, gps_badge %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
 
 {% block content %}
-<div class="app-shell">
+<style>
+  .rr-page {
+    --ink:        #0d1b26;
+    --ink-soft:   #2a4557;
+    --ink-muted:  #6b8395;
+    --line:       #e3ebf1;
+    --line-soft:  #eff4f8;
+    --paper:      #ffffff;
+    --canvas:     #f4f7fa;
+    --accent:     #0f6fa8;
+    --accent-dk:  #0a5586;
+    --accent-lt:  #e8f3fa;
+    --amber:      #c2740a;
+    --amber-lt:   #fdf4e3;
+    --green:      #1a7f4b;
+    --green-lt:   #e6f6ed;
+    --red:        #b3261e;
+    --red-lt:     #fdeceb;
+    --radius-lg:  20px;
+    --radius-md:  14px;
+    --radius-sm:  10px;
+    --shadow-sm:  0 1px 2px rgba(13,27,38,.04), 0 2px 8px rgba(13,27,38,.03);
+    --shadow-md:  0 2px 6px rgba(13,27,38,.05), 0 12px 28px -10px rgba(13,27,38,.10);
+    --shadow-lg:  0 4px 12px rgba(13,27,38,.06), 0 24px 48px -16px rgba(13,27,38,.14);
+  }
+
+  .rr-page .app-main {
+    background: var(--canvas);
+    padding: 2rem 2.5rem 4rem;
+    min-height: 100vh;
+  }
+  @media (max-width: 991px) {
+    .rr-page .app-main { padding: 1.25rem 1rem 3rem; }
+  }
+
+  /* ---------- top rail ---------- */
+  .rr-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+  }
+  .rr-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .875rem;
+    font-weight: 550;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: .5rem .9rem .5rem .7rem;
+    border-radius: 100px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    transition: all .16s ease;
+  }
+  .rr-back:hover {
+    color: var(--accent-dk);
+    border-color: #c8ddec;
+    transform: translateX(-2px);
+  }
+  .rr-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+  }
+  .rr-sev-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: .35rem .5rem .35rem 1rem;
+    font-size: .8rem;
+    color: var(--ink-muted);
+    box-shadow: var(--shadow-sm);
+  }
+  .rr-sev-chip .lbl {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: .7rem;
+  }
+  .rr-pdf {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    padding: .5rem 1.1rem;
+    border-radius: 100px;
+    background: var(--ink);
+    box-shadow: var(--shadow-sm);
+    transition: all .16s ease;
+  }
+  .rr-pdf:hover {
+    background: var(--accent-dk);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ---------- page heading ---------- */
+  .rr-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .rr-heading h2 {
+    margin: 0;
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .rr-heading .eyebrow {
+    display: block;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--ink-muted);
+    margin-bottom: .4rem;
+  }
+  .rr-heading .meta {
+    font-size: .85rem;
+    color: var(--ink-muted);
+    text-align: right;
+    line-height: 1.5;
+  }
+  .rr-heading .meta strong { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---------- grid ---------- */
+  .rr-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 1.75rem;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .rr-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- shared card ---------- */
+  .rr-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .rr-card + .rr-card { margin-top: 1.5rem; }
+  .rr-card-head {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: 1.1rem 1.5rem;
+    border-bottom: 1px solid var(--line-soft);
+    background: #fbfdfe;
+  }
+  .rr-card-head .ico {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 9px;
+    background: var(--accent-lt);
+    color: var(--accent-dk);
+    flex-shrink: 0;
+  }
+  .rr-card-head .ico.dark { background: var(--ink); color: #fff; }
+  .rr-card-head h6 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .rr-card-body { padding: 1.5rem; }
+
+  /* ---------- hero photo ---------- */
+  .rr-photo-wrap {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--line);
+    margin-bottom: 1.5rem;
+    background: #e9eff4;
+  }
+  .rr-photo-wrap img {
+    display: block;
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+  }
+  .rr-photo-badge {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    background: rgba(13,27,38,.82);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: .45rem .9rem;
+    border-radius: 100px;
+  }
+  .rr-photo-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 0 3px rgba(74,222,128,.25);
+  }
+
+  /* ---------- inspector notes ---------- */
+  .rr-notes {
+    font-size: .95rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    margin-bottom: 1.25rem;
+    white-space: pre-line;
+  }
+  .rr-byline {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--line);
+    font-size: .82rem;
+    color: var(--ink-muted);
+  }
+  .rr-byline .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #cfe3f0, #a9cbe2);
+    color: var(--accent-dk);
+    font-weight: 700;
+    font-size: .78rem;
+    flex-shrink: 0;
+  }
+  .rr-byline strong { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---------- decision form ---------- */
+  .rr-field { margin-bottom: 1.35rem; }
+  .rr-field:last-of-type { margin-bottom: 1rem; }
+  .rr-field label {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--ink-muted);
+    margin-bottom: .55rem;
+  }
+  .rr-field label .fi {
+    width: 16px; height: 16px;
+    display: inline-flex;
+    opacity: .85;
+  }
+  .rr-field textarea {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    background: #fbfdfe;
+    border-radius: var(--radius-md);
+    padding: .85rem 1rem;
+    font-size: .92rem;
+    line-height: 1.55;
+    color: var(--ink);
+    resize: vertical;
+    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  }
+  .rr-field textarea::placeholder { color: #9fb2c0; }
+  .rr-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(15,111,168,.10);
+  }
+
+  /* ---------- AI suggest-treatment row ---------- */
+  .rr-suggest-row {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    margin-top: .6rem;
+  }
+  .rr-suggest-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--accent-dk);
+    background: var(--accent-lt);
+    border: 1.5px solid #c8ddec;
+    border-radius: 100px;
+    padding: .45rem .95rem;
+    cursor: pointer;
+    transition: all .16s ease;
+  }
+  .rr-suggest-btn:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .rr-suggest-btn:disabled {
+    opacity: .6;
+    cursor: default;
+  }
+  .rr-suggest-status {
+    font-size: .8rem;
+    color: var(--ink-muted);
+  }
+  .rr-suggest-status.is-error {
+    color: var(--red);
+  }
+
+  /* status segmented control */
+  .rr-status {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .5rem;
+    background: var(--canvas);
+    padding: .35rem;
+    border-radius: 100px;
+    border: 1px solid var(--line);
+  }
+  .rr-status label {
+    position: relative;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-align: center;
+    padding: .6rem .5rem;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all .18s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+  }
+  .rr-status label input { position: absolute; opacity: 0; pointer-events: none; }
+  .rr-status label .swatch {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #cbd8e2;
+    transition: background .18s ease;
+    flex-shrink: 0;
+  }
+  .rr-status label:hover { color: var(--ink-soft); }
+  .rr-status label:has(input:checked) {
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+  .rr-status label:nth-child(1):has(input:checked) { color: var(--accent-dk); }
+  .rr-status label:nth-child(1):has(input:checked) .swatch { background: var(--accent); }
+  .rr-status label:nth-child(2):has(input:checked) { color: var(--amber); }
+  .rr-status label:nth-child(2):has(input:checked) .swatch { background: var(--amber); }
+  .rr-status label:nth-child(3):has(input:checked) { color: var(--green); }
+  .rr-status label:nth-child(3):has(input:checked) .swatch { background: var(--green); }
+
+  .rr-save {
+    width: 100%;
+    border: none;
+    border-radius: 100px;
+    padding: .85rem 1.5rem;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    color: #fff;
+    background: var(--ink);
+    cursor: pointer;
+    transition: all .18s ease;
+  }
+  .rr-save:hover {
+    background: var(--accent-dk);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -8px rgba(10,85,134,.45);
+  }
+  .rr-save:active { transform: translateY(0); }
+
+  /* ---------- workflow strip ---------- */
+  .rr-workflow {
+    margin-top: 1.5rem;
+    padding-top: 1.35rem;
+    border-top: 1px solid var(--line);
+  }
+  .rr-workflow-label {
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--ink-muted);
+    margin-bottom: .75rem;
+  }
+  .rr-workflow-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem;
+  }
+  .rr-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--accent-dk);
+    text-decoration: none;
+    padding: .55rem 1.1rem;
+    border-radius: 100px;
+    border: 1.5px solid #c8ddec;
+    background: #fff;
+    transition: all .16s ease;
+  }
+  .rr-btn-ghost:hover {
+    background: var(--accent-lt);
+    border-color: var(--accent);
+    color: var(--accent-dk);
+    transform: translateY(-1px);
+  }
+  .rr-workflow-note {
+    font-size: .84rem;
+    color: var(--ink-muted);
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .rr-workflow-note::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #cbd8e2;
+    flex-shrink: 0;
+  }
+
+  /* ---------- AI panel (right column) ---------- */
+  .rr-ai {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    position: sticky;
+    top: 1.5rem;
+  }
+  @media (max-width: 1100px) {
+    .rr-ai { position: static; }
+  }
+  .rr-ai-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1.1rem 1.5rem;
+    background: linear-gradient(135deg, #0d1b26 0%, #14354a 100%);
+    color: #fff;
+  }
+  .rr-ai-head .left {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+  }
+  .rr-ai-head .ico {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 9px;
+    background: rgba(255,255,255,.12);
+    color: #fff;
+  }
+  .rr-ai-head h6 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .rr-ai-head .tag {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    padding: .3rem .7rem;
+    border-radius: 100px;
+    background: rgba(255,255,255,.12);
+    color: #cfe3f0;
+  }
+  .rr-ai-body { padding: 1.5rem; }
+
+  /* empty / run state */
+  .rr-ai-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+  }
+  .rr-ai-empty .glyph {
+    width: 56px; height: 56px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-lt);
+    color: var(--accent-dk);
+  }
+  .rr-ai-empty p {
+    font-size: .9rem;
+    color: var(--ink-muted);
+    line-height: 1.55;
+    margin-bottom: 1.25rem;
+  }
+
+  /* crack presence chip row */
+  .rr-presence {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    padding: .7rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--canvas);
+    border: 1px solid var(--line);
+    margin-bottom: 1.25rem;
+    font-size: .85rem;
+  }
+  .rr-presence .lbl {
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--ink-muted);
+  }
+  .rr-presence .conf { color: var(--ink-muted); font-size: .8rem; }
+
+  /* stat grid */
+  .rr-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: .75rem;
+    margin-top: 1.15rem;
+  }
+  .rr-stats > * { min-width: 0; }
+
+  /* media row */
+  .rr-media {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: .75rem;
+    margin-top: 1.15rem;
+  }
+  .rr-media-item img,
+  .rr-media-item video {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    object-fit: cover;
+    max-height: 190px;
+    background: var(--canvas);
+    display: block;
+  }
+  .rr-media-cap {
+    font-size: .72rem;
+    color: var(--ink-muted);
+    text-align: center;
+    margin-top: .4rem;
+    letter-spacing: .01em;
+  }
+
+  /* secondary info row */
+  .rr-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .85rem 0 0;
+    margin-top: 1.15rem;
+    border-top: 1px dashed var(--line);
+    font-size: .84rem;
+    color: var(--ink-muted);
+  }
+  .rr-secondary .label {
+    font-weight: 700;
+    color: var(--ink-soft);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  /* rerun button */
+  .rr-rerun {
+    width: 100%;
+    margin-top: 1.35rem;
+    border-radius: 100px;
+    padding: .65rem 1rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--accent-dk);
+    background: #fff;
+    border: 1.5px solid #c8ddec;
+    cursor: pointer;
+    transition: all .16s ease;
+  }
+  .rr-rerun:hover {
+    background: var(--accent-lt);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .rr-run-primary {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    border: none;
+    border-radius: 100px;
+    padding: .8rem 1.5rem;
+    font-size: .9rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent-dk);
+    cursor: pointer;
+    transition: all .18s ease;
+    display: block;
+  }
+  .rr-run-primary:hover {
+    background: var(--ink);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -8px rgba(10,85,134,.4);
+  }
+</style>
+
+<div class="app-shell rr-page">
     {{ engineer_sidebar('queue', user) }}
     <main class="app-main">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-            <a href="/engineer/queue" class="d-inline-block">&larr; Back to Review Queue</a>
-            <a href="/engineer/reports/{{ report.id }}/pdf">Export as PDF &rarr;</a>
-        </div>
-        <div class="d-flex align-items-center gap-2 mb-4">
-            <h2 class="page-title mb-0">Report RPT-{{ '%04d'|format(report.id) }}</h2>
-            <span style="font-size:0.9rem;">Severity: {{ severity_badge(severity_label) }}</span>
+
+        <!-- ===== TOP BAR ===== -->
+        <div class="rr-topbar">
+            <a href="/engineer/queue" class="rr-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back to Review Queue
+            </a>
+            <div class="rr-topbar-right">
+                <span class="rr-sev-chip">
+                    <span class="lbl">Severity</span>
+                    {{ severity_badge(severity_label) }}
+                </span>
+                <a href="/engineer/reports/{{ report.id }}/pdf" class="rr-pdf">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export PDF
+                </a>
+            </div>
         </div>
 
-        <div class="row g-4">
-            <div class="col-lg-7">
-                <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded mb-3" style="max-width:100%; max-height:320px; object-fit:cover;">
+        <!-- ===== HEADING ===== -->
+        <div class="rr-heading">
+            <div>
+                <span class="eyebrow">Field Inspection Report</span>
+                <h2>RPT-{{ '%04d'|format(report.id) }}</h2>
+            </div>
+            <div class="meta">
+                Submitted by <strong>{{ inspector_name }}</strong><br>
+                {{ (report.created_at | localtime).strftime("%b %d, %Y") }}<br>
+                {{ report.location }} {{ gps_badge(report) }}
+            </div>
+        </div>
 
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_clipboard('') }}</div>
-                            <h6 class="mb-0">Inspector's Notes</h6>
-                        </div>
-                        <p class="mb-1 text-body" style="font-size:0.92rem;">
+        {% if nearby_reports %}
+        <!-- ===== NEARBY REPORTS BANNER (Duplicate/Nearby-Report Flagging) ===== -->
+        <div class="rr-nearby-banner" style="background:#fff8e6; border:1.5px solid #f0d78c; border-radius:var(--radius-md); padding:0.9rem 1.1rem; margin-bottom:1.25rem;">
+            <strong style="font-size:0.88rem;">&#9888;&nbsp; {{ nearby_reports|length }} other pending report{{ 's' if nearby_reports|length != 1 else '' }} within 50m of this location</strong>
+            <p class="mb-0 mt-1" style="font-size:0.85rem; color:var(--ink-muted);">This may be the same crack reported more than once, or two separate cracks nearby &mdash; worth a quick look before deciding.</p>
+            <ul class="mb-0 mt-2" style="padding-left:1.1rem; font-size:0.85rem;">
+                {% for item in nearby_reports %}
+                <li><a href="/engineer/reports/{{ item.report.id }}">RPT-{{ '%04d'|format(item.report.id) }}</a> &mdash; {{ item.distance_m }}m away, submitted by {{ item.inspector_name }}, {{ item.report.status }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- ===== GRID ===== -->
+        <div class="rr-grid">
+
+            <!-- ============ LEFT COLUMN ============ -->
+            <div>
+
+                <!-- hero photo -->
+                <div class="rr-photo-wrap">
+                    <img src="/uploads/{{ report.photo_path }}" alt="Inspection photo">
+                    <span class="rr-photo-badge">
+                        <span class="dot"></span>
+                        Primary Inspection Photo
+                    </span>
+                </div>
+
+                <!-- inspector notes -->
+                <div class="rr-card">
+                    <div class="rr-card-head">
+                        <div class="ico dark">{{ icon_clipboard('') }}</div>
+                        <h6>Inspector's Notes</h6>
+                    </div>
+                    <div class="rr-card-body">
+                        <p class="rr-notes">
                             {% if report.site_notes %}{{ report.site_notes }}
                             {% elif report.structure_age %}Structure is {{ report.structure_age }} old. Surface condition: {{ report.surface_condition }}. Crack {{ 'is' if report.actively_growing == 'Yes' else ('does not appear to be' if report.actively_growing == 'No' else 'may or may not be') }} actively growing.
                             {% else %}No additional notes were recorded.{% endif %}
                         </p>
-                        <p class="text-muted mb-0" style="font-size:0.82rem;">Submitted by {{ inspector_name }} on {{ (report.created_at | localtime).strftime("%b %d, %Y") }}</p>
+                        {% if report.cause %}
+                        <p class="rr-notes" style="margin-top:0.5rem;"><strong>Inspector's suspected cause:</strong> {{ report.cause }}</p>
+                        {% endif %}
+                        <div class="rr-byline">
+                            <span class="avatar">{{ inspector_name[:1]|upper if inspector_name else '?' }}</span>
+                            <span>Submitted by <strong>{{ inspector_name }}</strong> on {{ (report.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-2 mb-3">
-                            <div class="icon-badge icon-badge-sm">{{ icon_check('') }}</div>
-                            <h6 class="mb-0">Your Decision</h6>
-                        </div>
-
-                        <form method="post" action="/engineer/reports/{{ report.id }}" class="mb-3">
-                            <div class="mb-3">
-                                <label class="form-label">Remarks</label>
-                                <textarea name="engineer_remarks" class="form-control" rows="3">{{ report.engineer_remarks or "" }}</textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Treatment / Solution</label>
-                                <textarea name="treatment" class="form-control" rows="3" placeholder="What should be done about this? (e.g. seal the crack, resurface the section, monitor for now)">{{ report.treatment or "" }}</textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-select">
-                                    <option value="Under Review" {% if report.status == "Under Review" %}selected{% endif %}>Under Review</option>
-                                    <option value="Reviewed" {% if report.status == "Reviewed" %}selected{% endif %}>Reviewed</option>
-                                    <option value="Resolved" {% if report.status == "Resolved" %}selected{% endif %}>Resolved</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Assessment</button>
-                        </form>
-
-                        {% if report.status != "Resolved" %}
-                        <a href="/engineer/reports/{{ report.id }}/mark-resolved" class="btn btn-outline-primary btn-sm mb-2">Mark Resolved</a>
-                        {% endif %}
-                        <div></div>
-
-                        {% if report.status in ("Reviewed", "Resolved") %}
-                            {% if report.follow_up_photo_path %}
-                            <a href="/engineer/reports/{{ report.id }}/follow-up" class="btn btn-outline-primary btn-sm">View Follow-up Comparison &rarr;</a>
-                            {% elif report.follow_up_requested_at %}
-                            <span class="text-muted" style="font-size:0.85rem;">Waiting for the Inspector to submit the requested follow-up photo.</span>
-                            {% else %}
-                            <a href="/engineer/reports/{{ report.id }}/follow-up/new" class="btn btn-outline-primary btn-sm">Request Follow-up Scan &rarr;</a>
-                            {% endif %}
-                        {% else %}
-                        <span class="text-muted" style="font-size:0.85rem;">Follow-up Scan becomes available once this report is Reviewed or Resolved.</span>
-                        {% endif %}
+                <!-- decision -->
+                <div class="rr-card">
+                    <div class="rr-card-head">
+                        <div class="ico">{{ icon_check('') }}</div>
+                        <h6>Your Decision</h6>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-lg-5">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-2 mb-3">
-                            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_gauge('') }}</div>
-                            <h6 class="mb-0">AI Analysis</h6>
-                        </div>
-                        {% if not analysis_done %}
-                        <p class="text-muted mb-3" style="font-size:0.9rem;">Analysis hasn't been run on this report yet. Click below to run the AI models on this photo.</p>
-                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
-                            <button type="submit" class="btn btn-primary w-100">Run Analysis</button>
-                        </form>
-                        {% else %}
-                        <div class="finding-row">
-                            <span class="label">Crack Detected</span>
-                            <span class="value">
-                                {% if ai_label %}
-                                <span class="badge {{ 'bg-danger' if ai_label == 'Cracked' else 'bg-success' }}">{{ ai_label }}</span>
-                                {% else %}
-                                <span class="text-muted">Not yet available</span>
+                    <div class="rr-card-body">
+                        <form method="post" action="/engineer/reports/{{ report.id }}" class="decision-form">
+                            <div class="rr-field">
+                                <label><span class="fi">{{ icon_list('') }}</span>Remarks</label>
+                                <textarea name="engineer_remarks" rows="3" placeholder="Add your assessment notes here…">{{ report.engineer_remarks or "" }}</textarea>
+                            </div>
+                            <div class="rr-field">
+                                <label><span class="fi">{{ icon_list('') }}</span>Plain-English Summary</label>
+                                <textarea name="ai_summary" id="rr-summary-textarea" rows="3" placeholder="A short, non-technical explanation of what the AI found -- useful for anyone reading this report who isn't an engineer">{{ report.ai_summary or "" }}</textarea>
+                                {% if analysis_done %}
+                                <div class="rr-suggest-row" data-suggest-url="/engineer/reports/{{ report.id }}/suggest-summary" data-target="rr-summary-textarea">
+                                    <button type="button" class="rr-suggest-btn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+                                        Suggest with AI
+                                    </button>
+                                    <span class="rr-suggest-status" role="status"></span>
+                                </div>
                                 {% endif %}
-                            </span>
-                        </div>
-                        <div class="finding-row">
-                            <span class="label">Crack Type</span>
-                            <span class="value">
-                                {% if type_label %}{{ type_label }}{% if type_confidence %} ({{ type_confidence }}%){% endif %}
-                                {% else %}<span class="text-muted">Not yet available</span>{% endif %}
-                            </span>
-                        </div>
-                        <div class="finding-row">
-                            <span class="label">Confidence</span>
-                            <span class="value">{{ ai_confidence ~ "%" if ai_confidence is not none else "—" }}</span>
-                        </div>
-                        <div class="finding-row">
-                            <span class="label">Severity (AI)</span>
-                            <span class="value">{{ severity_badge(severity_label) }}</span>
-                        </div>
-                        {% if severity_label == "No crack shape detected" %}
-                        <p class="placeholder-note mt-2 mb-2">The AI didn't find a confident, traceable crack shape in this photo. This can genuinely happen -- the trained model finds a shape in roughly 4 out of 10 truly cracked photos (see PROJECT_LOG.md section 59), so this isn't unusual on its own.</p>
-                        {% elif severity_label == "Analysis error" %}
-                        <p class="placeholder-note mt-2 mb-2 text-danger">Something went wrong while analyzing this photo. Try Re-run Analysis below -- if it keeps happening, the photo file itself may be the issue.</p>
-                        {% endif %}
-                        {% if annotated_photo_path %}
-                        <p class="text-muted mb-1" style="font-size:0.82rem;">AI-traced crack outline:</p>
-                        <img src="/uploads/{{ annotated_photo_path }}" class="img-fluid rounded mb-2" style="max-width:100%; max-height:200px; object-fit:cover;">
-                        {% endif %}
-                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
-                            <button type="submit" class="btn btn-outline-primary btn-sm">Re-run Analysis</button>
+                            </div>
+                            <div class="rr-field">
+                                <label><span class="fi">{{ icon_target('') }}</span>Cause</label>
+                                <textarea name="engineer_cause" id="rr-cause-textarea" rows="2" placeholder="What most likely caused this? (e.g. water infiltration, heavy load, thermal expansion)">{{ report.engineer_cause or "" }}</textarea>
+                                {% if analysis_done %}
+                                <div class="rr-suggest-row" data-suggest-url="/engineer/reports/{{ report.id }}/suggest-cause" data-target="rr-cause-textarea">
+                                    <button type="button" class="rr-suggest-btn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+                                        Suggest with AI
+                                    </button>
+                                    <span class="rr-suggest-status" role="status"></span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="rr-field">
+                                <label><span class="fi">{{ icon_target('') }}</span>Treatment / Solution</label>
+                                <textarea name="treatment" id="rr-treatment-textarea" rows="3" placeholder="What should be done about this? (e.g. seal the crack, resurface the section, monitor for now)">{{ report.treatment or "" }}</textarea>
+                                {% if analysis_done %}
+                                <div class="rr-suggest-row" data-suggest-url="/engineer/reports/{{ report.id }}/suggest-treatment" data-target="rr-treatment-textarea">
+                                    <button type="button" class="rr-suggest-btn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+                                        Suggest with AI
+                                    </button>
+                                    <span class="rr-suggest-status" role="status"></span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="rr-field">
+                                <label><span class="fi">{{ icon_check('') }}</span>Status</label>
+                                <div class="rr-status">
+                                    <label>
+                                        <input type="radio" name="status" value="Under Review" {% if report.status == "Under Review" %}checked{% endif %}>
+                                        <span class="swatch"></span>
+                                        <span>Under Review</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="status" value="Reviewed" {% if report.status == "Reviewed" %}checked{% endif %}>
+                                        <span class="swatch"></span>
+                                        <span>Reviewed</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="status" value="Resolved" {% if report.status == "Resolved" %}checked{% endif %}>
+                                        <span class="swatch"></span>
+                                        <span>Resolved</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="rr-save">Save Assessment</button>
                         </form>
-                        {% endif %}
+
+                        <!-- workflow -->
+                        <div class="rr-workflow">
+                            <div class="rr-workflow-label">Workflow Actions</div>
+                            <div class="rr-workflow-row">
+                                {% if report.status != "Resolved" %}
+                                <a href="/engineer/reports/{{ report.id }}/mark-resolved" class="rr-btn-ghost">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Mark Resolved
+                                </a>
+                                {% endif %}
+
+                                {% if report.status in ("Reviewed", "Resolved") %}
+                                    {% if report.follow_up_photo_path %}
+                                    <a href="/engineer/reports/{{ report.id }}/follow-up" class="rr-btn-ghost">
+                                        View Follow-up Comparison
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                                    </a>
+                                    {% elif report.follow_up_requested_at %}
+                                    <span class="rr-workflow-note">Waiting for the Inspector to submit the requested follow-up photo.</span>
+                                    {% else %}
+                                    <a href="/engineer/reports/{{ report.id }}/follow-up/new" class="rr-btn-ghost">
+                                        Request Follow-up Scan
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                <span class="rr-workflow-note">Follow-up Scan becomes available once this report is Reviewed or Resolved.</span>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- ============ RIGHT COLUMN ============ -->
+            <div>
+                <div class="rr-ai">
+                    <div class="rr-ai-head">
+                        <div class="left">
+                            <div class="ico">{{ icon_gauge('') }}</div>
+                            <h6 class="text-light">AI Analysis</h6>
+                        </div>
+                        <span class="tag">{{ 'Complete' if analysis_done else 'Pending' }}</span>
+                    </div>
+                    <div class="rr-ai-body">
+
+                        {% if not analysis_done %}
+                        <div class="rr-ai-empty">
+                            <div class="glyph">{{ icon_gauge('') }}</div>
+                            <p>Analysis hasn't been run on this report yet.<br>Click below to run the AI models on this photo.</p>
+                            <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+                                <button type="submit" class="rr-run-primary">Run Analysis</button>
+                            </form>
+                        </div>
+
+                        {% elif report.source_type == "video" and report.surface_type == "Road" %}
+                        {{ ai_hero(annotated_photo_path or type_boxes_photo_path, severity_label, severity_confidence, eyebrow='Road survey video') }}
+                        <div class="rr-stats">
+                            {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=true) }}
+                            {{ stat_tile(icon_gauge(''), 'PCI Score', condition_score_badge(condition_score, condition_rating), tone=('orange' if condition_score is not none else 'muted')) }}
+                            {{ stat_tile(icon_road(''), 'Crack Type', type_label if type_label else 'Not yet available', caption=(type_confidence|string ~ '% confidence' if type_confidence else ''), tone=('navy' if type_label else 'muted')) }}
+                        </div>
+                        <div class="rr-media">
+                            {% if type_boxes_photo_path and annotated_photo_path %}
+                            <div class="rr-media-item">
+                                <img src="/uploads/{{ type_boxes_photo_path }}" alt="AI-detected damage, boxed and labeled">
+                                <div class="rr-media-cap">Boxed-labeled detection</div>
+                            </div>
+                            {% endif %}
+                            {% if report.video_path %}
+                            <div class="rr-media-item">
+                                <video src="/uploads/{{ report.video_path }}" controls></video>
+                                <div class="rr-media-cap">Original uploaded video</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+                            <button type="submit" class="rr-rerun">Re-run Analysis</button>
+                        </form>
+
+                        {% elif report.source_type == "video" %}
+                        {{ ai_hero(annotated_photo_path, severity_label, severity_confidence, eyebrow='Building walkthrough video') }}
+                        <div class="rr-stats">
+                            {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=true) }}
+                            {% if report.estimated_floor is not none %}
+                            {{ stat_tile(icon_building_floor(''), 'Floor / Height', ("%.1f"|format(report.estimated_floor)) ~ " of " ~ (report.total_floors|string), caption='~' ~ ("%.1f"|format(report.estimated_height_meters)) ~ 'm up &middot; estimated from video timing', tone='orange', wide=true) }}
+                            {% endif %}
+                        </div>
+                        <div class="rr-media">
+                            {% if report.video_path %}
+                            <div class="rr-media-item">
+                                <video src="/uploads/{{ report.video_path }}" controls></video>
+                                <div class="rr-media-cap">Original uploaded video</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="rr-secondary">
+                            <span class="label">PCI Score</span>
+                            <span>Road-only metric</span>
+                        </div>
+                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+                            <button type="submit" class="rr-rerun">Re-run Analysis</button>
+                        </form>
+
+                        {% else %}
+                        {# Photo report layout (Road or Building) #}
+                        <div class="rr-presence">
+                            <span class="lbl">Crack Presence</span>
+                            {% if ai_label %}
+                                <span class="badge {{ 'bg-danger' if ai_label == 'Cracked' else 'bg-success' }}">{{ ai_label }}</span>
+                                <span class="conf">{{ ai_confidence }}% confidence</span>
+                            {% else %}
+                                <span class="text-muted">Not yet available</span>
+                            {% endif %}
+                        </div>
+                        {{ ai_hero(annotated_photo_path, severity_label, severity_confidence, eyebrow='AI-traced crack outline') }}
+                        <div class="rr-stats">
+                            {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=true) }}
+                            {{ stat_tile(icon_road(''), 'Crack Type', type_label if type_label else 'Not yet available', caption=(type_confidence|string ~ '% confidence' if type_confidence else ''), tone=('navy' if type_label else 'muted')) }}
+                            {% if report.surface_type == "Road" %}
+                            {{ stat_tile(icon_gauge(''), 'PCI Score', condition_score_badge(condition_score, condition_rating), tone=('orange' if condition_score is not none else 'muted')) }}
+                            {% endif %}
+                        </div>
+                        {% if report.surface_type != "Road" %}
+                        <div class="rr-secondary">
+                            <span class="label">PCI Score</span>
+                            <span>Road-only metric</span>
+                        </div>
+                        {% endif %}
+                        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+                            <button type="submit" class="rr-rerun">Re-run Analysis</button>
+                        </form>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 </div>
+
+<script src="/static/js/suggest-treatment.js" defer></script>
 {% endblock %}

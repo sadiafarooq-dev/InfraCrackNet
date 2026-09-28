@@ -12,7 +12,6 @@ from sqlmodel import Session, select
 from auth.utils import get_current_user, hash_password
 from database import get_session
 from models.report import Report
-from models.message import Message
 from models.audit_log import AuditLogEntry
 from time_utils import register_localtime
 
@@ -261,16 +260,6 @@ def _engineer_notifications(user, session: Session):
 
 def _admin_notifications(user, session: Session):
     items = []
-    unread = session.exec(
-        select(Message).where(Message.is_read == False)  # noqa: E712
-    ).all()
-    for m in unread:
-        items.append({
-            "icon": "inbox",
-            "text": f'New message from {m.sender_name}: "{m.subject}"',
-            "time": m.created_at,
-            "href": f"/admin/inbox/{m.id}",
-        })
     recent_actions = session.exec(
         select(AuditLogEntry).order_by(AuditLogEntry.created_at.desc()).limit(10)
     ).all()
@@ -333,42 +322,3 @@ def notifications_latest(request: Request, user=Depends(get_current_user), sessi
         {"icon": i["icon"], "text": i["text"], "href": i["href"], "time": i["time"].isoformat()}
         for i in items
     ])
-
-
-# ---------------------------------------------------------------------
-# Contact Admin popup -- a lighter-weight version of the public Contact Us
-# form (Figma 58:2), for someone who's already logged in as an Inspector or
-# Engineer. No Name/Email fields since those already come from their real
-# account. Same real Message table as Contact Us and Compose Message, so
-# it lands in the Admin's real Inbox the same way.
-# ---------------------------------------------------------------------
-@router.get("/contact-admin")
-def contact_admin_page(request: Request, user=Depends(get_current_user)):
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    return templates.TemplateResponse(request, "contact_admin_popup.html", {"user": user})
-
-
-@router.post("/contact-admin")
-def contact_admin_submit(
-    request: Request,
-    subject: str = Form(...),
-    body: str = Form(...),
-    user=Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-
-    msg = Message(
-        sender_name=user.name,
-        sender_user_id=user.id,
-        subject=subject,
-        body=body,
-    )
-    session.add(msg)
-    session.commit()
-
-    return templates.TemplateResponse(
-        request, "contact_admin_popup.html", {"user": user, "sent": True}
-    )

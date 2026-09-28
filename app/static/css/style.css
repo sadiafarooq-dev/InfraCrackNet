@@ -954,7 +954,23 @@ a:hover {
     background: #F8F9FB;
 }
 
+/* .app-sidebar is now just a layout-transparent wrapper -- "display: contents"
+   means it takes no box of its own, so .sidebar-inner sits exactly where
+   .app-sidebar used to sit in .app-shell's flex row. This is what makes the
+   mobile fix below possible without changing how the sidebar looks or
+   behaves on desktop at all: .sidebar-inner carries every style .app-sidebar
+   used to carry, unchanged. */
 .app-sidebar {
+    display: contents;
+}
+.sidebar-toggle-checkbox {
+    display: none;
+}
+.sidebar-toggle-btn,
+.sidebar-toggle-backdrop {
+    display: none;
+}
+.sidebar-inner {
     width: 250px;
     flex-shrink: 0;
     border-top-right-radius: var(--radius-lg);
@@ -1072,6 +1088,75 @@ a:hover {
     min-width: 0;
     padding: 2.5rem 3rem;
     background: #F8F9FB;
+}
+
+/* ---- Sidebar, phone width -----------------------------------------------
+   The fix for the long-open bug: the navy sidebar used to stay its full
+   250px desktop width no matter how narrow the screen got, crowding out
+   the actual page. Below 767.98px, .sidebar-inner becomes an off-canvas
+   drawer (hidden just past the left edge) and a small hamburger button
+   takes its place; tapping the button -- or the dimmed backdrop behind an
+   open drawer -- slides it in/out. This is a plain CSS checkbox toggle
+   (the same no-JavaScript-needed trick used elsewhere in this project),
+   not a new JavaScript file: the checkbox and its two labels are the only
+   markup added, in inspector_sidebar/engineer_sidebar/admin_sidebar in
+   macros.html. Nothing about desktop width changes -- .sidebar-inner
+   above is untouched there. */
+@media (max-width: 767.98px) {
+    .app-shell {
+        flex-direction: column;
+    }
+    .app-sidebar {
+        display: block;
+    }
+    .sidebar-toggle-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 44px;
+        height: 44px;
+        margin: 12px 0 12px 16px;
+        border-radius: 10px;
+        background: var(--navy-dark);
+        cursor: pointer;
+        position: relative;
+        z-index: 1055;
+    }
+    .sidebar-toggle-btn span {
+        display: block;
+        width: 20px;
+        height: 2px;
+        border-radius: 2px;
+        background: #fff;
+    }
+    .sidebar-toggle-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 20, 35, 0.45);
+        z-index: 1049;
+    }
+    .sidebar-toggle-checkbox:checked ~ .sidebar-toggle-backdrop {
+        display: block;
+    }
+    .sidebar-inner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        border-radius: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 1050;
+        overflow-y: auto;
+    }
+    .sidebar-toggle-checkbox:checked ~ .sidebar-inner {
+        transform: translateX(0);
+    }
+    .app-main {
+        padding: 1.5rem 1.25rem;
+    }
 }
 
 /* ---- Home dashboard ---- */
@@ -1252,6 +1337,40 @@ a:hover {
     width: 36px;
     height: 36px;
 }
+/* "Use My Current Location" button (New Report -- Location step). Without
+   this, the pin icon macro has no size class to pick up and falls back to
+   the browser's default SVG size, which blows the button up into a huge
+   tile instead of a normal compact button -- this rule is what keeps it a
+   proper small icon-plus-text button. */
+.btn-locate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+}
+.btn-locate svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+.location-status {
+    font-size: 0.85rem;
+    min-height: 1.2em;
+}
+/* "We found the real location saved inside your photo/video" callout (New
+   Report -- Location step, section 69) -- same tinted-callout language as
+   the rest of the site, so it reads as a positive confirmation rather than
+   a warning. */
+.location-found-panel {
+    background: var(--orange-tint);
+    border: 1px solid var(--orange-border);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+}
+.location-found-panel strong {
+    color: var(--orange-dark);
+}
 .option-row {
     display: flex;
     gap: 0.6rem;
@@ -1266,7 +1385,10 @@ a:hover {
     height: 0;
 }
 .option-choice label {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     text-align: center;
     padding: 0.6rem 0.25rem;
     border: 1px solid var(--border-light);
@@ -1281,6 +1403,64 @@ a:hover {
     background: var(--orange);
     border-color: var(--orange);
     color: #fff;
+}
+.option-choice-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+/* "You picked a file" confirmation chip on the New Report Upload step
+   (redesigned section 80) -- replaces the browser's own tiny, easy-to-miss
+   "<filename>" text with a clear, on-brand confirmation that also states
+   whether the file was read as a Photo or a Video. */
+.file-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    background: var(--orange-tint);
+    border: 1px solid var(--orange-border);
+    border-radius: var(--radius-md);
+}
+.file-chip-body {
+    flex: 1;
+    min-width: 0;
+}
+.file-chip-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text-body);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.file-chip-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.file-chip-change {
+    background: none;
+    border: none;
+    color: var(--navy);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.file-chip-change:hover {
+    text-decoration: underline;
+}
+/* Video-only options block on the New Report Upload step (redesigned
+   section 80) -- stays hidden until a video file is actually chosen, so a
+   photo upload never sees it at all. Boxed and shaded so that when it does
+   appear, it reads clearly as "extra questions because you picked a video"
+   rather than blending into the rest of the form. */
+.video-options {
+    background: #F7F8FA;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.1rem;
 }
 .summary-row {
     display: flex;
@@ -1476,6 +1656,541 @@ a:hover {
     font-style: italic;
 }
 
+/* ---- AI Analysis redesign: hero photo + stat tiles ----
+   Replaces the old plain label/value finding-row stack for the AI Analysis
+   panel's headline numbers (Severity, Crack Length/Width, Floor/Height,
+   Condition Score) with a bigger hero image + a scannable stat-tile grid,
+   so the traced crack photo and the key measurements read as the main
+   content of the card instead of being squeezed into small list rows. */
+.ai-analysis-card {
+    overflow: hidden;
+}
+.ai-hero {
+    position: relative;
+    margin: 0 -1rem 1.1rem;
+    background: #0F1F33;
+}
+/* The -1rem top pull above only belongs to .ai-hero when it's the very
+   first thing in the card -- that's what makes it bleed flush to the
+   card's top edge instead of leaving the card-body's own top padding
+   showing above it. Section 84 added a "Crack Presence" line before the
+   picture on the photo-report layout, so in that case .ai-hero is no
+   longer first-child and must NOT get pulled up -- otherwise it rides up
+   over that new line and chops it off. */
+.card-body > .ai-hero:first-child {
+    margin-top: -1rem;
+}
+.ai-hero img,
+.ai-hero video {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    display: block;
+}
+.ai-hero .ai-hero-overlay {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 2.5rem 1.1rem 0.9rem;
+    background: linear-gradient(180deg, rgba(15, 31, 51, 0) 0%, rgba(15, 31, 51, 0.55) 55%, rgba(15, 31, 51, 0.9) 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.ai-hero .ai-hero-eyebrow {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+.ai-hero .ai-hero-severity {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.ai-hero .ai-hero-confidence {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    padding: 0.3em 0.85em;
+    backdrop-filter: blur(2px);
+}
+.ai-hero .severity-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+.ai-hero .severity-dot.dot-success { background: #3fae6a; }
+.ai-hero .severity-dot.dot-warning { background: #f0ad4e; }
+.ai-hero .severity-dot.dot-danger { background: #e5534b; }
+.ai-hero .severity-dot.dot-muted { background: #8a97a8; }
+.ai-hero-noimg .ai-hero-overlay {
+    position: static;
+    background: var(--grad-navy);
+    padding: 1.4rem 1.1rem;
+    border-radius: inherit;
+}
+.ai-hero-noimg .ai-hero-eyebrow {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.7rem;
+    margin-bottom: 1.1rem;
+    /* Section 83: CSS Grid stretches every cell in a row to match its
+       tallest neighbor by default -- that's what made a shorter tile (like
+       PCI Score, with no caption line) end up either pinned to the top with
+       empty space below, or (once centered, section 82) vertically centered
+       at a different height than its taller neighbor, so the two tiles'
+       labels landed at different y-positions ("not at the same level").
+       "start" turns that stretch off: each tile now sizes to its own
+       content and both tiles' tops -- and so their labels -- line up. */
+    align-items: start;
+}
+.stat-tile {
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: 0.85rem;
+    padding: 0.85rem 0.8rem;
+    display: flex;
+    gap: 0.55rem;
+    /* Centers the icon against its own tile's text block (label + value +
+       caption) -- unrelated to the cross-tile alignment above, which is
+       now handled by the grid itself. */
+    align-items: center;
+    min-width: 0;
+    transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.stat-tile:hover {
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+.stat-tile-wide {
+    grid-column: span 2;
+}
+/* Section 83: smaller and round instead of the previous 32px rounded-square
+   -- a rounded square that size was reading as bulky/boxy next to just two
+   lines of text once the tiles stopped being artificially stretched tall.
+   A circular badge is the same "icon-in-a-tinted-circle" language already
+   used elsewhere on this page (the AI Analysis / Inspector's Notes card
+   headers use .icon-badge), so this also makes the stat tiles match rather
+   than introducing a third icon style. */
+.stat-tile-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #F3F4F6;
+    border: 1px solid var(--border-light);
+    color: var(--text-muted);
+}
+.stat-tile-icon svg {
+    width: 13px;
+    height: 13px;
+}
+.stat-tile-wide .stat-tile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+.stat-tile-wide .stat-tile-icon svg {
+    width: 16px;
+    height: 16px;
+}
+.stat-tile-orange {
+    background: var(--grad-orange-tint);
+    border-color: var(--orange-border);
+}
+.stat-tile-orange .stat-tile-icon {
+    background: var(--grad-orange);
+    border-color: var(--orange);
+    color: #fff;
+}
+.stat-tile-navy .stat-tile-icon {
+    background: var(--grad-navy);
+    border-color: var(--navy);
+    color: #fff;
+}
+.stat-tile-success .stat-tile-icon {
+    background: #e9f9ef;
+    border-color: #bfe8cd;
+    color: #1f8a4c;
+}
+.stat-tile-warning .stat-tile-icon {
+    background: #fff6e0;
+    border-color: #f5dfa0;
+    color: #a5720a;
+}
+.stat-tile-danger .stat-tile-icon {
+    background: #fdeceb;
+    border-color: #f3c6c2;
+    color: #c0392b;
+}
+.stat-tile-body {
+    min-width: 0;
+}
+.stat-tile-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.045em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+.stat-tile-value {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.3;
+    overflow-wrap: break-word;
+}
+.stat-tile:not(.stat-tile-wide) .stat-tile-value {
+    font-size: 0.94rem;
+}
+.stat-tile-muted .stat-tile-value {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+.stat-tile-caption {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    line-height: 1.35;
+}
+
+.media-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+}
+.media-row .media-item {
+    flex: 1 1 160px;
+    min-width: 140px;
+}
+.media-row .media-item img,
+.media-row .media-item video {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 0.6rem;
+    display: block;
+    border: 1px solid var(--border-light);
+}
+.media-row .media-item .media-caption {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+}
+.ai-secondary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.85rem;
+}
+
+/* Section 84/85: the crack-presence status line that now sits above the AI
+   hero picture instead of in the row-stack below it. Section 85: redesigned
+   from a plain floating line of text (which looked washed-out sitting flush
+   against the picture, and butted right up against it with no visual
+   separation) into a proper header strip -- bled out to the card's own
+   edges the same way .ai-hero itself bleeds (see .card-body >
+   .ai-hero:first-child below), with a tinted background and a bottom
+   border, so it reads as a deliberate bar sitting on top of the photo
+   rather than stray text. */
+.crack-presence-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    margin: -1rem -1rem 0;
+    padding: 0.7rem 1rem;
+    background: #F3F4F6;
+    border-bottom: 1px solid var(--border-light);
+}
+.crack-presence-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.crack-presence-confidence {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Section 84: "Your Decision" card makeover -- separates the workflow
+   buttons (Mark Resolved / Follow-up Scan) from the assessment form above
+   them with a divider and a small uppercase label, instead of them just
+   trailing off the bottom of the form as a loose stack of differently-sized
+   buttons. */
+.decision-actions {
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-light);
+}
+.decision-actions-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.65rem;
+}
+.decision-actions-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.decision-actions-note {
+    font-size: 0.85rem;
+}
+
+/* Section 86: complete redesign of the Engineer's Report Review page (its
+   own request -- "redesign this page in a professional and creative way").
+   Replaces the old rigid 2-column split with a single top-to-bottom reading
+   flow, capped at a comfortable width instead of stretching edge-to-edge. */
+.report-container {
+    max-width: 1100px;
+}
+
+/* ---- Verdict strip: Crack Presence / Severity / PCI Score side by side,
+   read at a glance before looking at anything else on the page. ---- */
+.verdict-strip {
+    display: flex;
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.verdict-item {
+    flex: 1;
+    min-width: 140px;
+}
+.verdict-item-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+.verdict-item-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.verdict-item-sub {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.verdict-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--border-light);
+}
+/* Unscoped severity-dot -- the version at .ai-hero .severity-dot (further
+   down this file) is for the dot sitting on a dark image overlay and keeps
+   its white ring; this plain version is for a dot sitting directly on a
+   light background (the verdict strip, the media-compare severity chip). */
+.severity-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.severity-dot.dot-success { background: #3fae6a; }
+.severity-dot.dot-warning { background: #f0ad4e; }
+.severity-dot.dot-danger { background: #e5534b; }
+.severity-dot.dot-muted { background: #8a97a8; }
+
+/* ---- Media compare: the Original photo and the AI-Traced photo side by
+   side, as one paired unit instead of split across two unrelated parts of
+   the old layout. ---- */
+.media-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+.media-compare-panel {
+    position: relative;
+    background: #0F1F33;
+}
+.media-compare-panel img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+    display: block;
+}
+.media-compare-tag {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: rgba(15, 31, 51, 0.72);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 2rem;
+}
+.media-compare-severity {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    background: rgba(15, 31, 51, 0.85);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.media-compare-empty {
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 0 1.5rem;
+}
+@media (max-width: 767.98px) {
+    .media-compare {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Your Decision is now a full-width panel at the very bottom of the page
+   (it's the final action on the page) -- the orange top accent marks it as
+   "the thing to do" rather than another read-only info card like the ones
+   above it. */
+.decision-panel {
+    border-top: 3px solid var(--orange);
+}
+
+/* Section 85: "Your Decision" field makeover -- small icons next to each
+   field label (matching the icon-badge language used for the card headings
+   elsewhere on this page) and an orange focus ring on the inputs, so the
+   form doesn't read as bare default Bootstrap fields. */
+.decision-form .form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--navy);
+}
+.decision-form .field-icon {
+    width: 15px;
+    height: 15px;
+    color: var(--orange);
+    flex-shrink: 0;
+}
+.decision-form .form-control:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px var(--orange-tint);
+}
+
+/* Section 85: Status as a row of colored pills instead of a plain <select>
+   -- still a real radio group under the hood (same "status" field name/
+   values the backend already expects), just chosen visually instead of
+   from a dropdown. Colored to match status_badge's own info/warning/
+   success colors used for this exact status everywhere else in the app
+   (report headers, the timeline), so picking a status here previews the
+   badge color it'll show elsewhere. */
+.status-picker {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.status-pill {
+    position: relative;
+    flex: 1;
+    min-width: 100px;
+    margin: 0;
+}
+.status-pill input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+.status-pill span {
+    display: block;
+    text-align: center;
+    padding: 0.5rem 0.5rem;
+    border-radius: 0.6rem;
+    border: 1.5px solid var(--border-light);
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.status-pill span:hover {
+    border-color: var(--navy);
+}
+.status-pill input:focus-visible + span {
+    outline: 2px solid var(--navy);
+    outline-offset: 1px;
+}
+.status-pill-info input:checked + span {
+    background: #0dcaf0;
+    border-color: #0dcaf0;
+    color: #04414d;
+}
+.status-pill-warning input:checked + span {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #4d3800;
+}
+.status-pill-success input:checked + span {
+    background: #198754;
+    border-color: #198754;
+    color: #fff;
+}
+
 /* Engineer app shell  */
 
 /* ---- Review Queue filter tabs ---- */
@@ -1531,6 +2246,13 @@ a:hover {
 .badge-flagged {
     background: var(--orange-tint);
     color: var(--orange-dark);
+}
+/* PCI-inspired Condition Score badge, "Poor"/"Very Poor" bands -- sits
+   visually between the standard Bootstrap warning (Fair) and danger
+   (Serious/Failed) colors, using the app's own orange accent. */
+.badge-orange {
+    background: var(--orange);
+    color: #fff;
 }
 
 /* ---- Follow-up Scan: before/after comparison ---- */

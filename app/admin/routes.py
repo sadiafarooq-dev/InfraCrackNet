@@ -1,8 +1,10 @@
 # Admin routes
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Optional
 
+import requests
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -13,7 +15,6 @@ from database import get_session
 from models.user import User
 from models.report import Report
 from models.audit_log import AuditLogEntry, log_action
-from models.message import Message
 from models.app_settings import get_settings, generate_registration_code
 from time_utils import register_localtime
 
@@ -164,22 +165,13 @@ def _week_buckets(reports, weeks_back=4):
     return buckets
 
 
-@router.get("/trends")
-def trends(
-    request: Request,
-    range: str = "quarter",
-    user=Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    if not require_admin(user):
-        return RedirectResponse("/login", status_code=303)
-
-    if range not in ("month", "quarter", "year"):
-        range = "quarter"
-
-    reports = session.exec(select(Report)).all()
-
-  
+def _compute_trends_context(reports, range):
+    """The actual number-crunching behind the Trends page -- pulled out on
+    its own so both the normal page load (trends() below) and the new AI
+    Trend Insights button (trends_summarize() below) compute the exact same
+    numbers the same way, instead of this logic existing in two places that
+    could quietly drift apart. Returns the same dict of buckets/top_locations
+    /status_breakdown that used to be built directly inside trends()."""
     if range == "month":
         buckets = _week_buckets(reports)
     elif range == "year":
@@ -191,7 +183,6 @@ def trends(
     for b in buckets:
         b["height_pct"] = round((b["count"] / max_count) * 100)
 
-   
     location_counts = defaultdict(int)
     for r in reports:
         location_counts[r.location] += 1
@@ -212,15 +203,162 @@ def trends(
         for label, count in status_counts.items()
     ]
 
+    return {"buckets": buckets, "top_locations": top_locations, "status_breakdown": status_breakdown}
+
+
+@router.get("/trends")
+def trends(
+    request: Request,
+    range: str = "quarter",
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+
+    if range not in ("month", "quarter", "year"):
+        range = "quarter"
+
+    reports = session.exec(select(Report)).all()
+    ctx = _compute_trends_context(reports, range)
+
     return templates.TemplateResponse(
         request,
         "trends.html",
         {
             "user": user,
             "range": range,
-            "buckets": buckets,
-            "top_locations": top_locations,
-            "status_breakdown": status_breakdown,
+            "buckets": ctx["buckets"],
+            "top_locations": ctx["top_locations"],
+            "status_breakdown": ctx["status_breakdown"],
+        },
+    )
+
+
+# --- AI Trend Insights (4th of the 6 AI features -- see PROJECT_LOG.md) ---
+# Kept as its own small, local copy of the same Gemini REST call pattern
+# used in engineer/routes.py (Treatment/Cause/Summary), rather than
+# importing across routers, so the Admin and Engineer routers stay
+# independent of each other -- same idea, deliberately not shared code this
+# time, to avoid coupling two otherwise-separate parts of the app together.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+
+def _call_gemini(prompt, not_configured_message, failure_message):
+    """Same behavior as engineer/routes.py's _call_gemini -- returns
+    (suggestion_text, error_message), exactly one of the two set."""
+    if not GEMINI_API_KEY:
+        return None, not_configured_message
+    try:
+        resp = requests.post(
+            GEMINI_URL,
+            params={"key": GEMINI_API_KEY},
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            timeout=20,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        if not text:
+            return None, "The AI didn't return a summary this time -- please try again."
+        return text, None
+    except Exception:
+        return None, failure_message
+
+
+RANGE_LABELS = {"month": "the last 4 weeks", "quarter": "the last 3 months", "year": "the last 12 months"}
+
+
+def _build_trends_summary_prompt(range, buckets, top_locations, status_breakdown):
+    """Turns the same aggregate numbers already shown on the Trends page
+    into a plain-English prompt asking for a short pattern summary --
+    nothing here is a live per-report AI call, it's just the same totals
+    the charts on the page already show, handed to Gemini in words instead
+    of bars."""
+    lines = [
+        "You are summarizing crack-inspection report trends for a civil "
+        "infrastructure Admin dashboard, covering " + RANGE_LABELS.get(range, "the selected period") + ".",
+        "",
+        "Reports submitted per period, oldest first:",
+    ]
+    for b in buckets:
+        lines.append(f"- {b['label']}: {b['count']}")
+
+    if top_locations:
+        lines.append("")
+        lines.append("Top affected locations:")
+        for loc in top_locations:
+            lines.append(f"- {loc['location']}: {loc['count']} report(s)")
+
+    lines.append("")
+    lines.append("Reports by current status:")
+    for s in status_breakdown:
+        lines.append(f"- {s['label']}: {s['count']} ({s['pct']}%)")
+
+    lines += [
+        "",
+        "In 3-5 short, plain-English sentences with no headings, summarize the "
+        "overall pattern -- whether report volume is rising, falling, or "
+        "steady across the periods shown, which locations stand out (if any), "
+        "and what the status breakdown suggests about how well reports are "
+        "being kept up with. Do not just list the numbers back -- describe "
+        "what they mean, the way you'd brief a busy Admin who hasn't looked "
+        "at the charts yet.",
+    ]
+    return "\n".join(lines)
+
+
+def _suggest_trends_summary_from_ai(range, buckets, top_locations, status_breakdown):
+    """Calls Google's Gemini API for a plain-English Trends summary. Returns
+    (suggestion_text, error_message) -- exactly one of the two is set."""
+    prompt = _build_trends_summary_prompt(range, buckets, top_locations, status_breakdown)
+    return _call_gemini(
+        prompt,
+        "AI insights aren't set up yet -- a Gemini API key needs to be added to .env.",
+        "Couldn't reach the AI insights service right now. The charts above are still fully up to date.",
+    )
+
+
+@router.post("/trends/summarize")
+def trends_summarize(
+    request: Request,
+    range: str = Form("quarter"),
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Behind the "Generate Insights" button on the Trends page. Recomputes
+    the exact same numbers as the normal page load (via
+    _compute_trends_context, so the two can never disagree), asks Gemini for
+    a plain-English summary of them, and re-renders the same page with that
+    summary included -- computed fresh on each click, never saved to the
+    database, since these are aggregate numbers across ALL reports rather
+    than something that belongs to one report."""
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+
+    if range not in ("month", "quarter", "year"):
+        range = "quarter"
+
+    reports = session.exec(select(Report)).all()
+    ctx = _compute_trends_context(reports, range)
+
+    summary, error = _suggest_trends_summary_from_ai(
+        range, ctx["buckets"], ctx["top_locations"], ctx["status_breakdown"]
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "trends.html",
+        {
+            "user": user,
+            "range": range,
+            "buckets": ctx["buckets"],
+            "top_locations": ctx["top_locations"],
+            "status_breakdown": ctx["status_breakdown"],
+            "trend_summary": summary,
+            "trend_summary_error": error,
         },
     )
 
@@ -399,6 +537,13 @@ def all_reports(request: Request, user=Depends(get_current_user), session: Sessi
             "report": r,
             "inspector_name": inspector.name if inspector else "Unknown",
             "severity": r.model3_severity if r.analysis_run_at else None,
+            "condition_score": r.condition_score if r.analysis_run_at else None,
+            "condition_rating": r.condition_rating if r.analysis_run_at else None,
+            "crack_length_cm": r.crack_length_cm if r.analysis_run_at else None,
+            "crack_width_cm": r.crack_width_cm if r.analysis_run_at else None,
+            "crack_length_px": r.crack_length_px if r.analysis_run_at else None,
+            "crack_width_px": r.crack_width_px if r.analysis_run_at else None,
+            "crack_area_px": r.crack_area_px if r.analysis_run_at else None,
         })
 
     return templates.TemplateResponse(request, "all_reports.html", {"user": user, "rows": rows})
@@ -456,95 +601,3 @@ def audit_log_page(request: Request, user=Depends(get_current_user), session: Se
     entries = session.exec(select(AuditLogEntry).order_by(AuditLogEntry.created_at.desc())).all()
     return templates.TemplateResponse(request, "audit_log.html", {"user": user, "entries": entries})
 
-
-# Inbox
-@router.get("/inbox")
-def inbox_page(request: Request, user=Depends(get_current_user), session: Session = Depends(get_session)):
-    if not require_admin(user):
-        return RedirectResponse("/login", status_code=303)
-
-    messages = session.exec(select(Message).order_by(Message.created_at.desc())).all()
-    return templates.TemplateResponse(request, "inbox.html", {"user": user, "messages": messages})
-
-
-@router.get("/inbox/compose")
-def compose_message_page(request: Request, user=Depends(get_current_user), session: Session = Depends(get_session)):
-    if not require_admin(user):
-        return RedirectResponse("/login", status_code=303)
-    recipients = session.exec(select(User).where(User.id != user.id).order_by(User.name)).all()
-    return templates.TemplateResponse(request, "compose_message.html", {"user": user, "recipients": recipients})
-
-
-@router.post("/inbox/compose")
-def compose_message_submit(
-    request: Request,
-    recipient_id: int = Form(...),
-    subject: str = Form(...),
-    body: str = Form(...),
-    user=Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    if not require_admin(user):
-        return RedirectResponse("/login", status_code=303)
-    recipient = session.get(User, recipient_id)
-    if not recipient:
-        return RedirectResponse("/admin/inbox", status_code=303)
-
-    msg = Message(
-        from_admin=True,
-        sender_name=user.name,
-        sender_user_id=user.id,
-        recipient_name=recipient.name,
-        recipient_user_id=recipient.id,
-        subject=subject,
-        body=body,
-        is_read=True,
-    )
-    session.add(msg)
-    session.commit()
-
-    return RedirectResponse("/admin/inbox", status_code=303)
-
-
-@router.get("/inbox/{message_id}")
-def inbox_thread_page(
-    message_id: int,
-    request: Request,
-    user=Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    if not require_admin(user):
-        return RedirectResponse("/login", status_code=303)
-    msg = session.get(Message, message_id)
-    if not msg:
-        return RedirectResponse("/admin/inbox", status_code=303)
-
-    if not msg.is_read:
-        msg.is_read = True
-        session.add(msg)
-        session.commit()
-        session.refresh(msg)
-
-    return templates.TemplateResponse(request, "inbox_thread.html", {"user": user, "message": msg})
-
-
-@router.post("/inbox/{message_id}/reply")
-def inbox_reply_submit(
-    message_id: int,
-    request: Request,
-    reply_body: str = Form(...),
-    user=Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    if not require_admin(user):
-        return RedirectResponse("/login", status_code=303)
-    msg = session.get(Message, message_id)
-    if not msg:
-        return RedirectResponse("/admin/inbox", status_code=303)
-
-    msg.reply_body = reply_body
-    msg.replied_at = datetime.utcnow()
-    session.add(msg)
-    session.commit()
-
-    return RedirectResponse(f"/admin/inbox/{message_id}", status_code=303)

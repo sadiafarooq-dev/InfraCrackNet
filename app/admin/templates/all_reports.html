@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import admin_sidebar, status_badge, severity_badge, icon_clipboard %}
+{% from "macros.html" import admin_sidebar, status_badge, severity_badge, condition_score_badge, crack_measurement_display, icon_clipboard, gps_badge %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -20,6 +20,8 @@
                             <th>Report ID</th>
                             <th>Location</th>
                             <th>Severity</th>
+                            <th>Condition Score</th>
+                            <th>Length / Width</th>
                             <th>Status</th>
                             <th>Submitted By</th>
                             <th>Date</th>
@@ -30,8 +32,10 @@
                         {% for row in rows %}
                         <tr class="reveal">
                             <td>RPT-{{ '%04d'|format(row.report.id) }}</td>
-                            <td>{{ row.report.location }}</td>
+                            <td>{{ row.report.location }} {{ gps_badge(row.report) }}</td>
                             <td>{{ severity_badge(row.severity) }}</td>
+                            <td>{% if row.report.surface_type == "Road" %}{{ condition_score_badge(row.condition_score, row.condition_rating) }}{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
+                            <td>{{ crack_measurement_display(row.severity, row.report.source_type, row.crack_length_cm, row.crack_width_cm, row.crack_length_px, row.crack_width_px, row.crack_area_px) }}</td>
                             <td>{{ status_badge(row.report.status) }}</td>
                             <td>{{ row.inspector_name }}</td>
                             <td>{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</td>

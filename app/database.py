@@ -4,7 +4,6 @@ from sqlmodel import SQLModel, Session, create_engine, select
 from models.user import User
 from models.report import Report
 from models.audit_log import AuditLogEntry
-from models.message import Message
 from models.app_settings import AppSettings
 
 DATABASE_URL = "sqlite:///./infracracknet.db"

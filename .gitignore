@@ -20,9 +20,8 @@ __pycache__/
 # not code, and some of it could be large. Doesn't belong on GitHub.
 uploads/
 
-# The trained AI model files -- these are large binary files (not something
-# you wrote or edited), and GitHub isn't meant to store big files like this.
-# The website still finds and uses them normally on your own computer --
-# this line only stops them from being uploaded, it doesn't move or hide
-# them here.
-models/
+# The trained AI model files (models/) used to be listed here to keep them
+# out of GitHub. They're back IN now on purpose: to deploy this app for free
+# on Render, the model files have to travel to GitHub along with the code,
+# since Render builds straight from what's on GitHub. All three combined are
+# about 62MB, well under GitHub's 100MB-per-file limit, so this is safe.

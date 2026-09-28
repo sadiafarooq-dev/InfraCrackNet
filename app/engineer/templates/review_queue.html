@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import engineer_sidebar, status_badge, icon_magnifier %}
+{% from "macros.html" import engineer_sidebar, status_badge, severity_badge, icon_magnifier %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -14,7 +14,7 @@
 
         <div class="filter-tabs">
             <a href="/engineer/queue?tab=all" class="{{ 'tab-active' if tab == 'all' else '' }}">All ({{ all_count }})</a>
-            <span class="tab-disabled" title="Coming once severity scoring (Model 3) is wired in">High Severity &mdash; not yet available</span>
+            <a href="/engineer/queue?tab=priority" class="{{ 'tab-active' if tab == 'priority' else '' }}" title="Sorted by severity, road condition, and how long it's been waiting">Priority ({{ all_count }})</a>
             <a href="/engineer/queue?tab=overdue" class="{{ 'tab-active' if tab == 'overdue' else '' }}">Overdue ({{ overdue_count }})</a>
         </div>
 
@@ -27,6 +27,7 @@
                         <th>ID</th>
                         <th>Location</th>
                         <th>Submitted By</th>
+                        <th>Severity</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -37,6 +38,7 @@
                         <td><a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }}</a></td>
                         <td>{{ row.report.location }}</td>
                         <td>{{ row.inspector_name }}</td>
+                        <td>{{ severity_badge(row.severity_label) }}</td>
                         <td>{{ status_badge(row.report.status) }}</td>
                         <td><a href="/engineer/reports/{{ row.report.id }}">Review</a></td>
                     </tr>

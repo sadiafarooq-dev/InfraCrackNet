@@ -1,3 +1,9 @@
+# This line tells pip to also look here for torch/torchvision -- it's the
+# official smaller "CPU-only" build (no graphics-card software bundled in),
+# which is all a free server like Render has anyway. Saves a lot of download
+# size and build time compared to the default version.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi
 uvicorn[standard]
 jinja2
@@ -11,3 +17,5 @@ torchvision
 pillow
 reportlab
 ultralytics
+scikit-image
+requests

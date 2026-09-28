@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import engineer_sidebar, severity_badge, icon_compare %}
+{% from "macros.html" import engineer_sidebar, severity_badge, icon_compare, severity_confidence_display %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -50,8 +50,13 @@
                     {{ severity_badge(original_severity) }}<span class="arrow">&rarr;</span>{{ severity_badge(report.follow_up_severity) }}
                 </div>
             </div>
+            <div>
+                <div class="metric-label">Severity Confidence</div>
+                <div class="metric-values">
+                    {{ severity_confidence_display(original_severity_confidence, original_severity) }}<span class="arrow">&rarr;</span>{{ severity_confidence_display(report.follow_up_severity_confidence, report.follow_up_severity) }}
+                </div>
+            </div>
         </div>
-        <p class="placeholder-note mb-4">Width and length aren't measured by any of the three models, so they're left out rather than guessed.</p>
 
         {% if report.follow_up_annotated_photo_path %}
         <div class="compare-columns mb-4">
