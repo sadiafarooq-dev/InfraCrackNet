@@ -5,13 +5,39 @@ from models.user import User
 from models.report import Report
 from models.audit_log import AuditLogEntry
 from models.app_settings import AppSettings
+from models.project import Project, ProjectInspector, ProjectEngineer
 
 DATABASE_URL = "sqlite:///./infracracknet.db"
 engine = create_engine(DATABASE_URL, echo=False)
 
 
+def ensure_missing_columns():
+    """Adds any column a model has gained that an older infracracknet.db
+    file doesn't have yet (same job as migrate_db.py, but automatic, so just
+    restarting the server is enough). Only ever ADDS missing columns -- never
+    deletes or changes existing data."""
+    for table in SQLModel.metadata.sorted_tables:
+        with engine.begin() as conn:
+            existing = {row[1] for row in conn.exec_driver_sql(f'PRAGMA table_info("{table.name}")')}
+        if not existing:
+            continue  # table doesn't exist yet; create_all makes it fresh
+        for column in table.columns:
+            if column.name in existing:
+                continue
+            col_type = column.type.compile(engine.dialect)
+            try:
+                with engine.begin() as conn:
+                    conn.exec_driver_sql(
+                        f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {col_type}'
+                    )
+                print(f"[database] Added missing column {table.name}.{column.name}")
+            except Exception as exc:  # never stop the server from starting over this
+                print(f"[database] Could not add {table.name}.{column.name}: {exc}")
+
+
 def init_db():
     SQLModel.metadata.create_all(engine)
+    ensure_missing_columns()
     seed_demo_users()
 
 

@@ -19,6 +19,14 @@
 {% macro notifications_card(items) %}
 <h2 class="page-title mb-4">Notifications</h2>
 
+<div class="notif-enable" data-notif-enable hidden>
+    <div class="notif-enable-text">
+        <strong>Sound and desktop alerts</strong>
+        <span data-notif-enable-status></span>
+    </div>
+    <button type="button" class="notif-enable-btn" data-notif-enable-btn hidden>Turn on sound and desktop alerts</button>
+</div>
+
 <div class="card p-4" style="max-width:720px;">
     {% if items %}
     {% for item in items %}
@@ -29,7 +37,7 @@
     </a>
     {% endfor %}
     {% else %}
-    <p class="text-muted mb-0">Nothing new right now &mdash; you're all caught up.</p>
+    <p class="text-muted mb-0">Nothing new right now. You're all caught up.</p>
     {% endif %}
 </div>
 {% endmacro %}

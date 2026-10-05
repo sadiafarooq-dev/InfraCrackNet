@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import inspector_sidebar, status_badge, condition_score_badge, icon_gauge, icon_building_floor, icon_road, stat_tile, crack_measurement_stat, ai_hero, gps_badge %}
+{% from "macros.html" import inspector_sidebar, status_badge, condition_score_badge, icon_gauge, icon_building_floor, icon_road, stat_tile, crack_measurement_stat, ai_hero, gps_badge, all_frames_gallery %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -8,7 +8,7 @@
 <div class="app-shell">
     {{ inspector_sidebar('my-reports', user) }}
     <main class="app-main">
-        <a href="/inspector/dashboard" class="d-inline-block mb-2">&larr; Back to Home</a>
+        <a href="/inspector/dashboard" class="btn btn-outline-primary btn-sm mb-3">&larr; Back to Home</a>
         <div class="d-flex align-items-center gap-2 mb-2">
             <h2 class="page-title mb-0">Report RPT-{{ '%04d'|format(report.id) }}</h2>
             {{ status_badge(report.status) }}
@@ -32,7 +32,20 @@
 
         <div class="row g-4">
             <div class="col-lg-7">
+                {% set photos = report_photos(report) %}
+                {% if photos|length > 1 %}
+                <p class="photo-strip-title">{{ photos|length }} photos of this crack</p>
+                <div class="photo-strip mb-3">
+                    {% for name in photos %}
+                    <a href="/uploads/{{ name }}" target="_blank" rel="noopener" class="photo-strip-item">
+                        <img src="/uploads/{{ name }}" alt="Photo {{ loop.index }}">
+                        <span class="photo-pick-num">{{ 'Main' if loop.first else loop.index }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
                 <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded mb-3" style="max-width:100%; max-height:360px; object-fit:cover;">
+                {% endif %}
 
                 <div class="card reveal">
                     <div class="card-body">
@@ -75,6 +88,7 @@
                             </div>
                             {% endif %}
                         </div>
+                        {{ all_frames_gallery(all_frames) }}
                         {% elif report.source_type == "video" %}
                         {# -- Dedicated BUILDING video-report layout (PROJECT_LOG.md section 69,
                            redesigned section 77) -- matches engineer/templates/report_review.html. #}
@@ -93,9 +107,10 @@
                             </div>
                             {% endif %}
                         </div>
+                        {{ all_frames_gallery(all_frames) }}
                         <div class="ai-secondary-row">
                             <span class="text-muted">PCI Score</span>
-                            <span class="text-muted">Not applicable &mdash; road-only metric</span>
+                            <span class="text-muted">Not applicable (road-only metric)</span>
                         </div>
                         {% else %}
                         {# -- Photo report layout (Road or Building), redesigned section 77. #}
@@ -104,10 +119,10 @@
                             <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_gauge('') }}</div>
                             <h6 class="mb-0">AI Analysis</h6>
                         </div>
-                        <p class="text-muted mb-0" style="font-size:0.9rem;">Pending analysis &mdash; the Engineer hasn't run it yet.</p>
+                        <p class="text-muted mb-0" style="font-size:0.9rem;">Pending analysis. The Engineer hasn't run it yet.</p>
                         {% else %}
                         {% if not ai_label and analysis_done %}
-                        <p class="text-muted mb-2" style="font-size:0.85rem;">Pending analysis &mdash; the AI model file isn't in place yet.</p>
+                        <p class="text-muted mb-2" style="font-size:0.85rem;">Pending analysis. The AI model file isn't in place yet.</p>
                         {% endif %}
                         {# -- Crack-presence status (was labeled "Model 1 (crack presence)")
                            moved above the picture and renamed, per Sadia's request -- see
@@ -128,7 +143,7 @@
                         {% if report.surface_type != "Road" %}
                         <div class="ai-secondary-row">
                             <span class="text-muted">PCI Score</span>
-                            <span class="text-muted">Not applicable &mdash; road-only metric</span>
+                            <span class="text-muted">Not applicable (road-only metric)</span>
                         </div>
                         {% endif %}
                         {% endif %}
@@ -144,17 +159,39 @@
                             <div class="avatar">{{ (reviewer.name.split(" ")[0][0] + reviewer.name.split(" ")[-1][0]) if reviewer else "?" }}</div>
                             <span style="font-size:0.92rem;">{{ reviewer.name if reviewer else "Unknown" }}, Engineer</span>
                         </div>
+                        {% set verified_rows = verification_rows(report) %}
+                        {% if verified_rows %}
+                        <div class="decision-field mb-3">
+                            <div class="field-label">AI findings checked by the Engineer</div>
+                            <ul class="verified-list" style="font-size:0.9rem;">
+                                {% for label, ai, eng in verified_rows %}
+                                <li><span class="k">{{ label }}</span>AI: {{ ai if ai else 'no answer' }}, Engineer: <span class="{{ 'changed' if ai != eng else '' }}">{{ eng }}</span></li>
+                                {% endfor %}
+                            </ul>
+                            {% if report.verification_note %}<div class="text-muted mt-1" style="font-size:0.85rem; font-style:italic;">&ldquo;{{ report.verification_note }}&rdquo;</div>{% endif %}
+                        </div>
+                        {% endif %}
                         <div class="decision-field mb-3">
                             <div class="field-label">Summary</div>
                             <div class="field-value{{ ' text-muted' if not report.ai_summary }}" style="font-size:0.9rem;">{{ report.ai_summary if report.ai_summary else "Not yet provided by the Engineer" }}</div>
                         </div>
                         <div class="decision-field mb-3">
                             <div class="field-label">Cause</div>
-                            <div class="field-value{{ ' text-muted' if not report.engineer_cause }}" style="font-size:0.9rem;">{{ report.engineer_cause if report.engineer_cause else "Not yet assessed by the Engineer" }}</div>
+                            {% set cause_pts = report.engineer_cause|points %}
+                            {% if cause_pts %}
+                            <ul class="report-points field-value" style="font-size:0.9rem;">{% for pt in cause_pts %}<li>{{ pt }}</li>{% endfor %}</ul>
+                            {% else %}
+                            <div class="field-value text-muted" style="font-size:0.9rem;">Not yet assessed by the Engineer</div>
+                            {% endif %}
                         </div>
                         <div class="decision-field mb-3">
                             <div class="field-label">Treatment</div>
-                            <div class="field-value{{ ' text-muted' if not report.treatment }}" style="font-size:0.9rem;">{{ report.treatment if report.treatment else "Not yet provided by the Engineer" }}</div>
+                            {% set treatment_pts = report.treatment|points %}
+                            {% if treatment_pts %}
+                            <ul class="report-points field-value" style="font-size:0.9rem;">{% for pt in treatment_pts %}<li>{{ pt }}</li>{% endfor %}</ul>
+                            {% else %}
+                            <div class="field-value text-muted" style="font-size:0.9rem;">Not yet provided by the Engineer</div>
+                            {% endif %}
                         </div>
                         {% if report.engineer_remarks %}
                         <div class="decision-remarks">&ldquo;{{ report.engineer_remarks }}&rdquo;</div>

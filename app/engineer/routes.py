@@ -2,6 +2,7 @@
 import json
 import math
 import os
+import re
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
@@ -16,6 +17,7 @@ from auth.utils import get_current_user
 from database import get_session
 from models.report import Report
 from models.user import User
+from models.project import Project, ProjectEngineer
 from ml_models.predict import predict_crack_presence
 from ml_models.predict_type import predict_crack_type
 from ml_models.predict_severity import predict_severity
@@ -23,10 +25,14 @@ from condition_score import compute_condition_score
 from engineer.pdf_export import build_report_pdf
 from models.audit_log import log_action
 from time_utils import register_localtime, now_local
+from text_utils import clean_points, register_text_helpers, report_photos
+from asset_version import register_asset_version
 
 router = APIRouter(prefix="/engineer")
 templates = Jinja2Templates(directory=["templates", "engineer/templates"])
 register_localtime(templates)
+register_text_helpers(templates)
+register_asset_version(templates)
 
 UPLOAD_DIR = os.path.join("..", "uploads")
 
@@ -90,6 +96,31 @@ def require_engineer(user):
     return user and user.role == "Engineer"
 
 
+def _assigned_project_ids(session: Session, engineer_id: int):
+    """Every Project this Engineer has been assigned to by Admin (see
+    admin/routes.py) -- a plain set of ids."""
+    return {
+        row.project_id for row in session.exec(
+            select(ProjectEngineer).where(ProjectEngineer.user_id == engineer_id)
+        ).all()
+    }
+
+
+def _visible_to_engineer(report: Report, assigned_ids: set):
+    """Whether this Engineer is allowed to see this report: either it
+    belongs to one of their own assigned Projects, or it has no Project at
+    all (a report submitted before the Projects feature existed, or by an
+    Inspector not yet assigned anywhere -- kept visible to every Engineer as
+    a shared "Unassigned" bucket, rather than hidden from everyone)."""
+    return report.project_id is None or report.project_id in assigned_ids
+
+
+def _project_name_map(session: Session):
+    """id -> name for every Project, so report rows can show a plain project
+    name without a per-row database lookup."""
+    return {p.id: p.name for p in session.exec(select(Project)).all()}
+
+
 def _ai_result(report: Report):
     """Runs the real, working crack-presence model (Model 1) on a report's
     original photo. Returns (label, confidence) or (None, None) if the model
@@ -99,21 +130,44 @@ def _ai_result(report: Report):
     return predict_crack_presence(photo_full_path)
 
 
-def _run_analysis(report: Report):
-    """Actually runs Model 1, Model 2 (for Road reports), and Model 3 on a
-    report's photo, for real -- this is the one place in the app that calls
-    the trained models to produce the "official" saved result for a report.
-    Called only when an Engineer deliberately clicks "Run Analysis" (see
-    run_analysis_submit() below), not on every page load."""
-    photo_full_path = os.path.join(UPLOAD_DIR, report.photo_path)
+# How serious a photo's result is, for picking the photo that decides a
+# multi-photo report's overall answer: a photo the AI calls Cracked beats one
+# it calls Uncracked, then High beats Medium beats Low, then the AI's own
+# confidence breaks a tie. (If everything ties, the first photo wins.)
+_SEVERITY_RANK = {"High": 3, "Medium": 2, "Low": 1}
+
+
+def _seriousness(result):
+    return (
+        1 if result.get("ai_label") == "Cracked" else 0,
+        _SEVERITY_RANK.get(result.get("severity"), 0),
+        result.get("ai_confidence") or 0,
+    )
+
+
+def _empty_photo_result(photo_name):
+    return {
+        "photo": photo_name, "failed": True,
+        "ai_label": None, "ai_confidence": None, "type_label": None, "type_confidence": None,
+        "severity": None, "severity_confidence": None, "annotated": None,
+        "condition_score": None, "condition_rating": None,
+        "crack_length_cm": None, "crack_width_cm": None,
+        "crack_length_px": None, "crack_width_px": None, "crack_area_px": None,
+    }
+
+
+def _analyze_one_photo(photo_name, surface_type):
+    """Runs Model 1, Model 2 (Road only) and Model 3 on ONE photo file and
+    returns everything they found as a dict."""
+    photo_full_path = os.path.join(UPLOAD_DIR, photo_name)
     ai_label, ai_confidence = predict_crack_presence(photo_full_path)
 
-    if report.surface_type == "Road":
+    if surface_type == "Road":
         type_label, type_confidence = predict_crack_type(photo_full_path)
     else:
         type_label, type_confidence = None, None
 
-    ext = os.path.splitext(report.photo_path)[1] or ".jpg"
+    ext = os.path.splitext(photo_name)[1] or ".jpg"
     annotated_filename = f"{uuid.uuid4().hex}_outline{ext}"
     annotated_full_path = os.path.join(UPLOAD_DIR, annotated_filename)
     # detect_marker defaults to True here -- a normal photo report is
@@ -129,16 +183,96 @@ def _run_analysis(report: Report):
 
     # PCI-inspired Condition Score -- Road reports only (PCI is a pavement
     # metric, see condition_score.py). None/None for Buildings and for any
-    # report where Model 3 didn't trace a real crack shape.
-    if report.surface_type == "Road":
+    # photo where Model 3 didn't trace a real crack shape.
+    if surface_type == "Road":
         condition_score, condition_rating = compute_condition_score(severity_label, type_label)
     else:
         condition_score, condition_rating = None, None
 
-    return (ai_label, ai_confidence, type_label, type_confidence,
-            severity_label, severity_confidence, annotated_filename,
-            condition_score, condition_rating, crack_length_cm, crack_width_cm,
-            crack_length_px, crack_width_px, crack_area_px)
+    return {
+        "photo": photo_name, "failed": False,
+        "ai_label": ai_label, "ai_confidence": ai_confidence,
+        "type_label": type_label, "type_confidence": type_confidence,
+        "severity": severity_label, "severity_confidence": severity_confidence,
+        "annotated": annotated_filename,
+        "condition_score": condition_score, "condition_rating": condition_rating,
+        "crack_length_cm": crack_length_cm, "crack_width_cm": crack_width_cm,
+        "crack_length_px": crack_length_px, "crack_width_px": crack_width_px,
+        "crack_area_px": crack_area_px,
+    }
+
+
+def _result_values(result):
+    """One photo's result dict as the plain tuple the report-level fields use."""
+    return (
+        result["ai_label"], result["ai_confidence"],
+        result["type_label"], result["type_confidence"],
+        result["severity"], result["severity_confidence"], result["annotated"],
+        result["condition_score"], result["condition_rating"],
+        result["crack_length_cm"], result["crack_width_cm"],
+        result["crack_length_px"], result["crack_width_px"], result["crack_area_px"],
+    )
+
+
+def _run_analysis(report: Report):
+    """Produces the "official" saved AI result for a report, revealed the
+    moment an Engineer deliberately clicks "Run Analysis" (see
+    run_analysis_submit() below) -- not on every page load.
+
+    Returns (values, photo_results):
+    - values is the 14-item tuple saved in the report's own model1_* /
+      model2_* / model3_* / measurement fields.
+    - photo_results is None for a single-photo or video report. For a report
+      with SEVERAL photos it is a list with one dict per photo, the photo with
+      the most serious result FIRST (see _seriousness): that photo's values
+      are the ones returned as `values`, so the report's overall answer is
+      always its most serious photo.
+
+    For a PHOTO report, this is where the models actually run for the very
+    first time: Model 1, Model 2 (Road only), and Model 3, on every photo.
+
+    For a VIDEO report, the models already ran back at upload time, reading
+    through the whole video (see inspector/routes.py's
+    new_report_upload_submit) -- there's no point running them again here,
+    and re-running Model 2/3 on just the single representative frame
+    (report.photo_path) would actually throw away the better, whole-video
+    result already sitting on the report (e.g. the Road pipeline's
+    best-detection-across-all-frames, or the Building pipeline's floor/
+    height estimate). So for video this function just hands back the
+    report's own already-computed fields, unchanged -- "Run Analysis" is
+    purely what REVEALS them, matching the photo flow from the Engineer's
+    point of view without wastefully (or wrongly) recomputing anything."""
+    if report.source_type == "video":
+        return (
+            report.model1_label, report.model1_confidence,
+            report.model2_label, report.model2_confidence,
+            report.model3_severity, report.model3_confidence,
+            report.model3_annotated_photo_path,
+            report.condition_score, report.condition_rating,
+            report.crack_length_cm, report.crack_width_cm,
+            report.crack_length_px, report.crack_width_px, report.crack_area_px,
+        ), None
+
+    photos = report_photos(report)
+    if len(photos) <= 1:
+        return _result_values(_analyze_one_photo(report.photo_path, report.surface_type)), None
+
+    results = []
+    for index, photo_name in enumerate(photos):
+        try:
+            results.append(_analyze_one_photo(photo_name, report.surface_type))
+        except Exception as exc:
+            # The main photo failing is a real error, same as before. An extra
+            # photo that cannot be read should not stop the other photos.
+            if index == 0:
+                raise
+            print(f"[analysis] Could not analyze {photo_name}: {exc}")
+            results.append(_empty_photo_result(photo_name))
+
+    # max() keeps the FIRST photo when two are equally serious.
+    lead = max(range(len(results)), key=lambda i: _seriousness(results[i]))
+    ordered = [results[lead]] + [r for i, r in enumerate(results) if i != lead]
+    return _result_values(ordered[0]), ordered
 
 
 @router.get("/dashboard")
@@ -146,7 +280,9 @@ def home(request: Request, user=Depends(get_current_user), session: Session = De
     if not require_engineer(user):
         return RedirectResponse("/login", status_code=303)
 
+    assigned_ids = _assigned_project_ids(session, user.id)
     reports = session.exec(select(Report).order_by(Report.created_at.desc())).all()
+    reports = [r for r in reports if _visible_to_engineer(r, assigned_ids)]
     pending = [r for r in reports if r.status in ("Submitted", "Under Review")]
 
     flagged_ids = set()
@@ -189,9 +325,13 @@ def review_queue(
     if not require_engineer(user):
         return RedirectResponse("/login", status_code=303)
 
+    assigned_ids = _assigned_project_ids(session, user.id)
+    project_names = _project_name_map(session)
+
     pending = session.exec(
         select(Report).where(Report.status.in_(["Submitted", "Under Review"])).order_by(Report.created_at)
     ).all()
+    pending = [r for r in pending if _visible_to_engineer(r, assigned_ids)]
 
     now = datetime.utcnow()
     overdue = [r for r in pending if (now - r.created_at).days >= OVERDUE_DAYS]
@@ -215,6 +355,7 @@ def review_queue(
             "report": r,
             "inspector_name": inspector.name if inspector else "Unknown",
             "severity_label": r.model3_severity if r.analysis_run_at else None,
+            "project_name": project_names.get(r.project_id, "Unassigned"),
         })
 
     return templates.TemplateResponse(
@@ -234,13 +375,21 @@ def review_queue(
 def all_reports(
     request: Request,
     q: Optional[str] = None,
+    project_id: Optional[int] = None,
     user=Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
     if not require_engineer(user):
         return RedirectResponse("/login", status_code=303)
 
+    assigned_ids = _assigned_project_ids(session, user.id)
+    project_names = _project_name_map(session)
+
     reports = session.exec(select(Report).order_by(Report.created_at.desc())).all()
+    reports = [r for r in reports if _visible_to_engineer(r, assigned_ids)]
+
+    if project_id:
+        reports = [r for r in reports if r.project_id == project_id]
 
     if q:
         needle = q.strip().lower()
@@ -273,9 +422,37 @@ def all_reports(
             "crack_length_px": crack_length_px,
             "crack_width_px": crack_width_px,
             "crack_area_px": crack_area_px,
+            "project_name": project_names.get(r.project_id, "Unassigned"),
         })
 
-    return templates.TemplateResponse(request, "all_reports.html", {"user": user, "rows": rows, "q": q or ""})
+    project_filter_name = project_names.get(project_id, "this project") if project_id else None
+
+    return templates.TemplateResponse(request, "all_reports.html", {
+        "user": user, "rows": rows, "q": q or "",
+        "project_id": project_id, "project_filter_name": project_filter_name,
+    })
+
+
+# Projects -- read-only for Engineer: just the Projects Admin has assigned
+# them to, with how many reports are currently pending under each one.
+@router.get("/projects")
+def engineer_projects_page(
+    request: Request, user=Depends(get_current_user), session: Session = Depends(get_session)
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+
+    assigned_ids = _assigned_project_ids(session, user.id)
+    projects = session.exec(
+        select(Project).where(Project.id.in_(assigned_ids)).order_by(Project.name)
+    ).all() if assigned_ids else []
+
+    rows = []
+    for p in projects:
+        report_count = len(session.exec(select(Report).where(Report.project_id == p.id)).all())
+        rows.append({"project": p, "report_count": report_count})
+
+    return templates.TemplateResponse(request, "projects.html", {"user": user, "rows": rows})
 
 
 def _haversine_distance_m(lat1, lon1, lat2, lon2):
@@ -322,30 +499,39 @@ def _find_nearby_reports(candidates, target_report, threshold_m=NEARBY_REPORT_TH
     return nearby[:5]
 
 
-@router.get("/reports/{report_id}")
-def report_review_page(
-    report_id: int,
-    request: Request,
-    user=Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    if not require_engineer(user):
-        return RedirectResponse("/login", status_code=303)
+# Short, plain messages shown at the top of the Report Review page after one
+# of the steps below -- passed in the address as ?notice=<code> (a fixed code,
+# never free text) so nothing user-typed ever gets displayed back.
+REVIEW_NOTICES = {
+    "verified": ("success", "Your verification was saved."),
+    "verify_first": ("warning", "Please verify the AI findings first (Step 1) before marking this report Reviewed or Resolved. Anything else you typed was saved."),
+    "analysis_first": ("warning", "Run the AI analysis first, then verify its findings, before marking this report Reviewed or Resolved. Anything else you typed was saved."),
+    "need_analysis": ("warning", "Run the AI analysis first. There is nothing to verify yet."),
+    "points_saved": ("success", "Cause and Treatment saved."),
+    "review_saved": ("success", "Summary, remarks and status saved."),
+}
 
-    report = session.get(Report, report_id)
-    if not report:
-        return RedirectResponse("/engineer/queue", status_code=303)
-
-    if report.status == "Submitted":
-        report.status = "Under Review"
-        report.under_review_at = datetime.utcnow()
-        session.add(report)
-        session.commit()
-        session.refresh(report)
-
-    inspector = session.get(User, report.inspector_id)
+CRACK_PRESENCE_OPTIONS = ["Cracked", "Uncracked"]
+ROAD_CRACK_TYPE_OPTIONS = ["Pothole", "Alligator Crack", "Transverse Crack", "Longitudinal Crack", "None of these"]
+SEVERITY_OPTIONS = ["Low", "Medium", "High"]
 
 
+def _verify_gate_notice(report):
+    """Returns the notice code to show if this report can NOT yet be moved
+    to Reviewed/Resolved because the Engineer hasn't verified the AI's
+    findings (Step 1), or None if it's fine. Reports that were already
+    Reviewed/Resolved before this step existed are left alone."""
+    if report.status in ("Reviewed", "Resolved"):
+        return None
+    if report.verified_at is not None:
+        return None
+    return "verify_first" if report.analysis_run_at else "analysis_first"
+
+
+def _analysis_context(report):
+    """Everything the AI results show (used by both the Report Review hub and
+    the AI Analysis page): the AI's answers are only revealed once the
+    Engineer has deliberately run the analysis."""
     analysis_done = report.analysis_run_at is not None
     ai_label = report.model1_label if analysis_done else None
     ai_confidence = report.model1_confidence if analysis_done else None
@@ -375,6 +561,69 @@ def report_review_page(
     crack_length_px = report.crack_length_px if analysis_done else None
     crack_width_px = report.crack_width_px if analysis_done else None
     crack_area_px = report.crack_area_px if analysis_done else None
+    # Every flagged video frame, for the "See All Frames" gallery -- see
+    # models/report.py's video_all_frames_json. [] / None for a photo
+    # report, or an older video report submitted before this feature
+    # existed.
+    all_frames = (
+        json.loads(report.video_all_frames_json) if report.video_all_frames_json else None
+    )
+    # What the AI found in each photo, for a report with several photos (the
+    # most serious photo first) -- see models/report.py's photo_results_json.
+    photo_results = None
+    if analysis_done and report.photo_results_json:
+        try:
+            photo_results = json.loads(report.photo_results_json)
+        except ValueError:
+            photo_results = None
+    return {
+        "photo_results": photo_results,
+        "analysis_done": analysis_done,
+        "ai_label": ai_label,
+        "ai_confidence": ai_confidence,
+        "type_label": type_label,
+        "type_confidence": type_confidence,
+        "severity_label": severity_label,
+        "severity_confidence": severity_confidence,
+        "annotated_photo_path": annotated_photo_path,
+        "type_boxes_photo_path": type_boxes_photo_path,
+        "type_detections": type_detections,
+        "condition_score": condition_score,
+        "condition_rating": condition_rating,
+        "crack_length_cm": crack_length_cm,
+        "crack_width_cm": crack_width_cm,
+        "crack_length_px": crack_length_px,
+        "crack_width_px": crack_width_px,
+        "crack_area_px": crack_area_px,
+        "all_frames": all_frames,
+    }
+
+
+@router.get("/reports/{report_id}")
+def report_review_page(
+    report_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+
+    if report.status == "Submitted":
+        report.status = "Under Review"
+        report.under_review_at = datetime.utcnow()
+        session.add(report)
+        session.commit()
+        session.refresh(report)
+
+    inspector = session.get(User, report.inspector_id)
+
+
+    analysis = _analysis_context(report)
 
     # Duplicate/Nearby-Report Flagging -- see _find_nearby_reports above.
     # Computed fresh on every page load (not stored) since which reports
@@ -400,24 +649,33 @@ def report_review_page(
             "report": report,
             "inspector_name": inspector.name if inspector else "Unknown",
             "nearby_reports": nearby_reports,
-            "analysis_done": analysis_done,
-            "ai_label": ai_label,
-            "ai_confidence": ai_confidence,
-            "type_label": type_label,
-            "type_confidence": type_confidence,
-            "type_boxes_photo_path": type_boxes_photo_path,
-            "type_detections": type_detections,
-            "severity_label": severity_label,
-            "severity_confidence": severity_confidence,
-            "annotated_photo_path": annotated_photo_path,
-            "condition_score": condition_score,
-            "condition_rating": condition_rating,
-            "crack_length_cm": crack_length_cm,
-            "crack_width_cm": crack_width_cm,
-            "crack_length_px": crack_length_px,
-            "crack_width_px": crack_width_px,
-            "crack_area_px": crack_area_px,
+            **analysis,
+            "notice": REVIEW_NOTICES.get(request.query_params.get("notice", "")),
+            "cause_points": _clean_points(report.engineer_cause),
+            "treatment_points": _clean_points(report.treatment),
         },
+    )
+
+
+@router.get("/reports/{report_id}/analysis")
+def ai_analysis_page(
+    report_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """The AI Analysis page: the AI's results shown full width (big pictures,
+    result tiles), with the Run / Re-run Analysis button."""
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "ai_analysis.html",
+        {"user": user, "report": report, **_analysis_context(report)},
     )
 
 
@@ -449,11 +707,13 @@ def _build_treatment_prompt(report, type_label, severity_label, condition_score,
 
     lines += [
         "",
-        "In 1-3 short sentences, written the way a field engineer would write it "
-        "in an inspection report, recommend a specific, practical treatment "
-        "(for example: seal, patch, resurface, monitor, or a structural repair). "
-        "Do not repeat the input data back and do not add any headings -- just "
-        "write the recommendation itself, plainly.",
+        "List 3 to 5 specific, practical treatment or action steps, written the "
+        "way a field engineer would note them in an inspection report (for "
+        "example: seal, patch, resurface, monitor, or a structural repair), "
+        "starting with the most important one. Write each step on its own "
+        "line, starting the line with \"- \", and keep each one under 15 "
+        "words. Do not repeat the input data back, and do not add any "
+        "heading or any text other than the list.",
     ]
     return "\n".join(lines)
 
@@ -477,10 +737,41 @@ def _call_gemini(prompt, not_configured_message, failure_message):
         data = resp.json()
         text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
         if not text:
-            return None, "The AI didn't return a suggestion this time -- please try again."
+            return None, "The AI didn't return a suggestion this time. Please try again."
         return text, None
     except Exception:
         return None, failure_message
+
+
+_clean_points = clean_points
+
+
+def _points_from_ai(text, limit=5, max_len=220):
+    """Same clean-up for the AI's reply, capped at 5 short points."""
+    return [pt[:max_len] for pt in _clean_points(text)][:limit]
+
+
+def _suggest_points(report, kind):
+    """Asks Gemini for a short bullet list of causes or treatments. Uses the
+    Engineer's own verified severity and crack type when they have verified
+    the findings (Step 1), otherwise the AI's. Returns (list, error)."""
+    verified = report.verified_at is not None
+    severity = (report.engineer_severity if verified and report.engineer_severity else report.model3_severity)
+    type_label = report.engineer_crack_type if verified and report.engineer_crack_type else report.model2_label
+    if type_label == "None of these":
+        type_label = None
+    args = (report, type_label, severity, report.condition_score, report.condition_rating,
+            report.crack_length_cm, report.crack_width_cm, report.crack_length_px, report.crack_width_px)
+    if kind == "cause":
+        text, error = _suggest_cause_from_ai(*args)
+    else:
+        text, error = _suggest_treatment_from_ai(*args)
+    if error:
+        return None, error
+    points = _points_from_ai(text)
+    if not points:
+        return None, "The AI didn't return a suggestion this time. Please try again."
+    return points, None
 
 
 def _suggest_treatment_from_ai(report, type_label, severity_label, condition_score,
@@ -496,8 +787,8 @@ def _suggest_treatment_from_ai(report, type_label, severity_label, condition_sco
     )
     return _call_gemini(
         prompt,
-        "AI suggestions aren't set up yet -- a Gemini API key needs to be added to .env.",
-        "Couldn't reach the AI suggestion service right now. You can still write your own Treatment below.",
+        "AI suggestions aren't set up yet. A Gemini API key needs to be added to .env.",
+        "Couldn't reach the AI suggestion service right now. You can still add your own points.",
     )
 
 
@@ -532,13 +823,15 @@ def _build_cause_prompt(report, type_label, severity_label, condition_score,
 
     lines += [
         "",
-        "In 1-2 short sentences, written the way a field engineer would write "
-        "it in an inspection report, suggest the most likely cause (for "
-        "example: thermal expansion, water infiltration, heavy load/traffic, "
-        "poor drainage, ground settlement, or normal ageing). Make clear this "
-        "is a probable cause, not a certainty, since it wasn't confirmed on "
-        "site. Do not repeat the input data back and do not add any "
-        "headings -- just write the suggestion itself, plainly.",
+        "List 3 to 5 likely causes of this crack, written the way a field "
+        "engineer would note them in an inspection report (for example: "
+        "thermal expansion, water infiltration, heavy load or traffic, poor "
+        "drainage, ground settlement, or normal ageing), starting with the "
+        "most likely one. These are probable causes, not certainties, since "
+        "nothing was confirmed on site. Write each cause on its own line, "
+        "starting the line with \"- \", and keep each one under 15 words. "
+        "Do not repeat the input data back, and do not add any heading or "
+        "any text other than the list.",
     ]
     return "\n".join(lines)
 
@@ -555,8 +848,8 @@ def _suggest_cause_from_ai(report, type_label, severity_label, condition_score,
     )
     return _call_gemini(
         prompt,
-        "AI suggestions aren't set up yet -- a Gemini API key needs to be added to .env.",
-        "Couldn't reach the AI suggestion service right now. You can still write your own Cause below.",
+        "AI suggestions aren't set up yet. A Gemini API key needs to be added to .env.",
+        "Couldn't reach the AI suggestion service right now. You can still add your own points.",
     )
 
 
@@ -614,7 +907,7 @@ def _suggest_summary_from_ai(report, ai_label, type_label, severity_label, condi
     )
     return _call_gemini(
         prompt,
-        "AI suggestions aren't set up yet -- a Gemini API key needs to be added to .env.",
+        "AI suggestions aren't set up yet. A Gemini API key needs to be added to .env.",
         "Couldn't reach the AI suggestion service right now. You can still write your own Summary below.",
     )
 
@@ -638,7 +931,7 @@ def suggest_summary(
 
     if report.analysis_run_at is None:
         return JSONResponse(
-            {"error": "Run the AI analysis first -- there's nothing to base a suggestion on yet."},
+            {"error": "Run the AI analysis first. There's nothing to base a suggestion on yet."},
             status_code=400,
         )
 
@@ -680,25 +973,15 @@ def suggest_treatment(
 
     if report.analysis_run_at is None:
         return JSONResponse(
-            {"error": "Run the AI analysis first -- there's nothing to base a suggestion on yet."},
+            {"error": "Run the AI analysis first. There's nothing to base a suggestion on yet."},
             status_code=400,
         )
 
-    suggestion, error = _suggest_treatment_from_ai(
-        report,
-        report.model2_label,
-        report.model3_severity,
-        report.condition_score,
-        report.condition_rating,
-        report.crack_length_cm,
-        report.crack_width_cm,
-        report.crack_length_px,
-        report.crack_width_px,
-    )
+    suggestions, error = _suggest_points(report, "treatment")
     if error:
         return JSONResponse({"error": error}, status_code=502)
 
-    return JSONResponse({"suggestion": suggestion})
+    return JSONResponse({"suggestions": suggestions})
 
 
 @router.post("/reports/{report_id}/suggest-cause")
@@ -720,25 +1003,15 @@ def suggest_cause(
 
     if report.analysis_run_at is None:
         return JSONResponse(
-            {"error": "Run the AI analysis first -- there's nothing to base a suggestion on yet."},
+            {"error": "Run the AI analysis first. There's nothing to base a suggestion on yet."},
             status_code=400,
         )
 
-    suggestion, error = _suggest_cause_from_ai(
-        report,
-        report.model2_label,
-        report.model3_severity,
-        report.condition_score,
-        report.condition_rating,
-        report.crack_length_cm,
-        report.crack_width_cm,
-        report.crack_length_px,
-        report.crack_width_px,
-    )
+    suggestions, error = _suggest_points(report, "cause")
     if error:
         return JSONResponse({"error": error}, status_code=502)
 
-    return JSONResponse({"suggestion": suggestion})
+    return JSONResponse({"suggestions": suggestions})
 
 
 @router.post("/reports/{report_id}/run-analysis")
@@ -759,7 +1032,7 @@ def run_analysis_submit(
      severity_label, severity_confidence, annotated_filename,
      condition_score, condition_rating,
      crack_length_cm, crack_width_cm,
-     crack_length_px, crack_width_px, crack_area_px) = _run_analysis(report)
+     crack_length_px, crack_width_px, crack_area_px), photo_results = _run_analysis(report)
 
     report.model1_label = ai_label
     report.model1_confidence = ai_confidence
@@ -775,11 +1048,21 @@ def run_analysis_submit(
     report.crack_length_px = crack_length_px
     report.crack_width_px = crack_width_px
     report.crack_area_px = crack_area_px
+    if photo_results:
+        # Several photos: the most serious one becomes the report's main photo
+        # (so it always sits next to the AI outline that was traced on it), and
+        # the rest follow. No photo is removed, only the order can change.
+        report.photo_path = photo_results[0]["photo"]
+        report.extra_photos_json = json.dumps([r["photo"] for r in photo_results[1:]])
+        report.photo_results_json = json.dumps(photo_results)
+    else:
+        report.photo_results_json = None
     report.analysis_run_at = datetime.utcnow()
     session.add(report)
 
+    photo_note = f" ({len(photo_results)} photos)" if photo_results else ""
     log_action(session, actor_name=user.name, action="Ran AI Analysis",
-               details=f"Ran AI analysis on RPT-{report.id:04d}")
+               details=f"Ran AI analysis on RPT-{report.id:04d}{photo_note}")
 
     session.commit()
 
@@ -819,13 +1102,42 @@ def analyzing_page(
     )
 
 
-@router.post("/reports/{report_id}")
-def report_review_submit(
+REVIEW_STATUSES = ["Under Review", "Reviewed", "Resolved"]
+
+
+@router.get("/reports/{report_id}/summary-status")
+def summary_status_page(
+    report_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+
+    locked = _verify_gate_notice(report) is not None
+    return templates.TemplateResponse(
+        request,
+        "summary_status.html",
+        {
+            "user": user,
+            "report": report,
+            "analysis_done": report.analysis_run_at is not None,
+            "statuses": REVIEW_STATUSES,
+            # Reviewed and Resolved stay locked until Step 1 (verify) is done.
+            "locked": locked,
+        },
+    )
+
+
+@router.post("/reports/{report_id}/summary-status")
+def summary_status_submit(
     report_id: int,
     request: Request,
     engineer_remarks: str = Form(""),
-    engineer_cause: str = Form(""),
-    treatment: str = Form(""),
     ai_summary: str = Form(""),
     status: str = Form(...),
     user=Depends(get_current_user),
@@ -838,9 +1150,19 @@ def report_review_submit(
     if not report:
         return RedirectResponse("/engineer/queue", status_code=303)
 
-    report.engineer_remarks = engineer_remarks
-    report.engineer_cause = engineer_cause.strip() or None
-    report.treatment = treatment.strip() or None
+    if status not in REVIEW_STATUSES:
+        status = report.status
+
+    # Can't move on to Reviewed/Resolved until the Engineer has verified the
+    # AI's findings (Step 1). Their typed notes are still saved, the status
+    # just stays where it was.
+    blocked_notice = None
+    if status in ("Reviewed", "Resolved"):
+        blocked_notice = _verify_gate_notice(report)
+        if blocked_notice:
+            status = report.status
+
+    report.engineer_remarks = engineer_remarks.strip() or None
     report.ai_summary = ai_summary.strip() or None
     report.status = status
     report.reviewed_by_id = user.id
@@ -853,8 +1175,8 @@ def report_review_submit(
 
     session.commit()
 
-    return RedirectResponse(f"/engineer/reports/{report.id}", status_code=303)
-
+    notice = blocked_notice or "review_saved"
+    return RedirectResponse(f"/engineer/reports/{report.id}?notice={notice}", status_code=303)
 
 
 @router.get("/reports/{report_id}/mark-resolved")
@@ -869,6 +1191,9 @@ def mark_resolved_confirm(
     report = session.get(Report, report_id)
     if not report:
         return RedirectResponse("/engineer/queue", status_code=303)
+    blocked_notice = _verify_gate_notice(report)
+    if blocked_notice:
+        return RedirectResponse(f"/engineer/reports/{report.id}?notice={blocked_notice}", status_code=303)
     return templates.TemplateResponse(request, "mark_resolved_confirm.html", {"user": user, "report": report})
 
 
@@ -885,6 +1210,10 @@ def mark_resolved_submit(
     if not report:
         return RedirectResponse("/engineer/queue", status_code=303)
 
+    blocked_notice = _verify_gate_notice(report)
+    if blocked_notice:
+        return RedirectResponse(f"/engineer/reports/{report.id}?notice={blocked_notice}", status_code=303)
+
     report.status = "Resolved"
     report.reviewed_by_id = user.id
     report.reviewed_at = datetime.utcnow()
@@ -895,6 +1224,218 @@ def mark_resolved_submit(
 
     return RedirectResponse(f"/engineer/reports/{report.id}", status_code=303)
 
+
+
+def _verification_context(report):
+    """What the Verify AI Findings page needs: which questions to ask and
+    what the AI said for each. Presence is asked for photo reports only (the
+    AI doesn't make a separate Cracked/Uncracked call on a video), Crack Type
+    for Road reports only (Buildings have no crack type), Severity always."""
+    ask_presence = report.source_type != "video"
+    ask_type = report.surface_type == "Road"
+    return {
+        "ask_presence": ask_presence,
+        "ask_type": ask_type,
+        "presence_options": CRACK_PRESENCE_OPTIONS,
+        "type_options": ROAD_CRACK_TYPE_OPTIONS,
+        "severity_options": SEVERITY_OPTIONS,
+        "ai_presence": report.model1_label if report.model1_label in CRACK_PRESENCE_OPTIONS else None,
+        "ai_presence_conf": report.model1_confidence,
+        "ai_type": report.model2_label if report.model2_label in ROAD_CRACK_TYPE_OPTIONS else None,
+        "ai_type_conf": report.model2_confidence,
+        "ai_severity": report.model3_severity if report.model3_severity in SEVERITY_OPTIONS else None,
+        "ai_severity_conf": report.model3_confidence,
+        "photo_results": _analysis_context(report)["photo_results"],
+    }
+
+
+@router.get("/reports/{report_id}/verify")
+def verify_findings_page(
+    report_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+    if report.analysis_run_at is None:
+        return RedirectResponse(f"/engineer/reports/{report.id}?notice=need_analysis", status_code=303)
+
+    ctx = _verification_context(report)
+    # What's pre-selected: the Engineer's earlier answer if they've verified
+    # before, otherwise the AI's own answer (the Engineer then only has to
+    # change what they disagree with).
+    already = report.verified_at is not None
+    picked_presence = report.engineer_crack_presence if already else ctx["ai_presence"]
+    picked_type = report.engineer_crack_type if already else ctx["ai_type"]
+    picked_severity = report.engineer_severity if already else ctx["ai_severity"]
+
+    error_text = {
+        "presence": "Please choose whether the surface is Cracked or Uncracked.",
+        "type": "Please choose the crack type (or \"None of these\").",
+        "severity": "Please choose the severity.",
+    }.get(request.query_params.get("error", ""))
+
+    return templates.TemplateResponse(
+        request,
+        "verify_findings.html",
+        {
+            "user": user,
+            "report": report,
+            "annotated_photo_path": report.model3_annotated_photo_path or report.model2_annotated_photo_path,
+            "picked_presence": picked_presence,
+            "picked_type": picked_type,
+            "picked_severity": picked_severity,
+            "already_verified": already,
+            "error_text": error_text,
+            **ctx,
+        },
+    )
+
+
+@router.post("/reports/{report_id}/verify")
+def verify_findings_submit(
+    report_id: int,
+    request: Request,
+    crack_presence: str = Form(""),
+    crack_type: str = Form(""),
+    severity: str = Form(""),
+    verification_note: str = Form(""),
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+    if report.analysis_run_at is None:
+        return RedirectResponse(f"/engineer/reports/{report.id}?notice=need_analysis", status_code=303)
+
+    ctx = _verification_context(report)
+    back = f"/engineer/reports/{report.id}/verify"
+
+    presence = crack_presence if crack_presence in CRACK_PRESENCE_OPTIONS else None
+    if ctx["ask_presence"] and presence is None:
+        return RedirectResponse(f"{back}?error=presence", status_code=303)
+    # "Uncracked" skips the type and severity questions entirely.
+    uncracked = presence == "Uncracked"
+
+    picked_type = None
+    if ctx["ask_type"] and not uncracked:
+        picked_type = crack_type if crack_type in ROAD_CRACK_TYPE_OPTIONS else None
+        if picked_type is None:
+            return RedirectResponse(f"{back}?error=type", status_code=303)
+
+    picked_severity = None
+    if not uncracked:
+        picked_severity = severity if severity in SEVERITY_OPTIONS else None
+        if picked_severity is None:
+            return RedirectResponse(f"{back}?error=severity", status_code=303)
+
+    report.engineer_crack_presence = presence
+    report.engineer_crack_type = picked_type
+    report.engineer_severity = picked_severity
+    report.verification_note = verification_note.strip() or None
+    report.verified_at = datetime.utcnow()
+    session.add(report)
+
+    parts = []
+    if ctx["ask_presence"]:
+        parts.append(f"Crack Presence {presence} (AI: {ctx['ai_presence'] or 'none'})")
+    if ctx["ask_type"] and not uncracked:
+        parts.append(f"Crack Type {picked_type} (AI: {ctx['ai_type'] or 'none'})")
+    if not uncracked:
+        parts.append(f"Severity {picked_severity} (AI: {ctx['ai_severity'] or 'none'})")
+    log_action(session, actor_name=user.name, action="Verified AI Findings",
+               details=f"RPT-{report.id:04d}: " + "; ".join(parts))
+    session.commit()
+
+    return RedirectResponse(f"/engineer/reports/{report.id}?notice=verified", status_code=303)
+
+
+MAX_POINTS = 12
+MAX_POINT_LENGTH = 300
+
+
+def _points_from_form(form, prefix):
+    """Reads the ticked points for one list (prefix "cause" or "treatment")
+    from the submitted form. Each card has a text box named
+    <prefix>_text_<n> and a tick box named <prefix>_keep_<n>; only ticked,
+    non-empty cards are kept, in page order, with repeats removed."""
+    indexes = []
+    for key in form.keys():
+        if key.startswith(f"{prefix}_text_"):
+            suffix = key[len(f"{prefix}_text_"):]
+            if suffix.isdigit():
+                indexes.append(int(suffix))
+    points, seen = [], set()
+    for n in sorted(set(indexes)):
+        if f"{prefix}_keep_{n}" not in form:
+            continue
+        text = " ".join(str(form.get(f"{prefix}_text_{n}", "")).split())[:MAX_POINT_LENGTH]
+        text = text.lstrip("-*\u2022\u00b7 ").strip()
+        if text and text.lower() not in seen:
+            seen.add(text.lower())
+            points.append(text)
+    return points[:MAX_POINTS]
+
+
+@router.get("/reports/{report_id}/cause-treatment")
+def cause_treatment_page(
+    report_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "cause_treatment.html",
+        {
+            "user": user,
+            "report": report,
+            "analysis_done": report.analysis_run_at is not None,
+            "cause_points": _clean_points(report.engineer_cause),
+            "treatment_points": _clean_points(report.treatment),
+        },
+    )
+
+
+@router.post("/reports/{report_id}/cause-treatment")
+async def cause_treatment_submit(
+    report_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_engineer(user):
+        return RedirectResponse("/login", status_code=303)
+    report = session.get(Report, report_id)
+    if not report:
+        return RedirectResponse("/engineer/queue", status_code=303)
+
+    form = await request.form()
+    causes = _points_from_form(form, "cause")
+    treatments = _points_from_form(form, "treatment")
+
+    # Stored as one point per line in the same two text fields as before, so
+    # no database change is needed for these.
+    report.engineer_cause = "\n".join(causes) or None
+    report.treatment = "\n".join(treatments) or None
+    session.add(report)
+    log_action(session, actor_name=user.name, action="Updated Cause and Treatment",
+               details=f"RPT-{report.id:04d}: {len(causes)} cause point(s), {len(treatments)} treatment point(s)")
+    session.commit()
+
+    return RedirectResponse(f"/engineer/reports/{report.id}?notice=points_saved", status_code=303)
 
 
 @router.get("/reports/{report_id}/follow-up/new")
@@ -945,7 +1486,7 @@ def request_follow_up_submit(
     report.follow_up_decision = None
     session.add(report)
     log_action(session, actor_name=user.name, action="Requested Follow-up",
-               details=f"Requested a follow-up photo for RPT-{report.id:04d} — {report.location}")
+               details=f"Requested a follow-up photo for RPT-{report.id:04d} · {report.location}")
     session.commit()
 
     return RedirectResponse(f"/engineer/reports/{report_id}", status_code=303)
@@ -1026,9 +1567,11 @@ def follow_ups_index(
     if not require_engineer(user):
         return RedirectResponse("/login", status_code=303)
 
+    assigned_ids = _assigned_project_ids(session, user.id)
     reports = session.exec(
         select(Report).where(Report.status.in_(["Reviewed", "Resolved"])).order_by(Report.created_at.desc())
     ).all()
+    reports = [r for r in reports if _visible_to_engineer(r, assigned_ids)]
 
     return templates.TemplateResponse(request, "follow_ups_index.html", {"user": user, "reports": reports})
 

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "macros.html" import wizard_header, icon_folder %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ wizard_header(1, "Select Project") }}
+
+<div class="wizard-card reveal">
+    <h3 class="mb-1">Which Project is this for?</h3>
+    <p class="text-muted mb-4">Pick the site you're reporting on. Only Projects your Admin has assigned you to show up here.</p>
+
+    {% if projects %}
+    <form method="post" action="/inspector/reports/new/project">
+        <div class="option-row" style="flex-direction:column; align-items:stretch;">
+            {% for p in projects %}
+            <div class="option-choice mb-2">
+                <input type="radio" name="project_id" id="proj-{{ p.id }}" value="{{ p.id }}" {% if loop.first %}checked{% endif %}>
+                <label for="proj-{{ p.id }}">{{ icon_folder('option-choice-icon') }}{{ p.name }}{% if p.location %} <span class="text-muted">&middot; {{ p.location }}</span>{% endif %}</label>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary w-100 mt-4">Continue &rarr;</button>
+    </form>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon-wrap">{{ icon_folder('') }}</div>
+        <h4 class="mb-2">You haven't been assigned to a project yet</h4>
+        <p class="text-muted mb-0">Contact your Admin to get assigned to a project before submitting a new report.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

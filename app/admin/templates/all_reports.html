@@ -11,47 +11,48 @@
         <h2 class="page-title mb-1">All Reports</h2>
         <p class="text-muted mb-4">Every crack report submitted across the system</p>
 
-        <div class="card table-card">
-            {% if rows %}
-            <div class="table-responsive">
-                <table class="table mb-0 align-middle">
-                    <thead>
-                        <tr>
-                            <th>Report ID</th>
-                            <th>Location</th>
-                            <th>Severity</th>
-                            <th>Condition Score</th>
-                            <th>Length / Width</th>
-                            <th>Status</th>
-                            <th>Submitted By</th>
-                            <th>Date</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                        <tr class="reveal">
-                            <td>RPT-{{ '%04d'|format(row.report.id) }}</td>
-                            <td>{{ row.report.location }} {{ gps_badge(row.report) }}</td>
-                            <td>{{ severity_badge(row.severity) }}</td>
-                            <td>{% if row.report.surface_type == "Road" %}{{ condition_score_badge(row.condition_score, row.condition_rating) }}{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
-                            <td>{{ crack_measurement_display(row.severity, row.report.source_type, row.crack_length_cm, row.crack_width_cm, row.crack_length_px, row.crack_width_px, row.crack_area_px) }}</td>
-                            <td>{{ status_badge(row.report.status) }}</td>
-                            <td>{{ row.inspector_name }}</td>
-                            <td>{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</td>
-                            <td><a href="/admin/reports/{{ row.report.id }}/delete" class="text-danger" style="font-size:0.85rem;">Delete</a></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% if rows %}
+        <div class="dl-list dl-wide" style="--dl-cols: 2.2rem minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 1.3fr) auto;">
+            <div class="dl-head">
+                <span>#</span>
+                <span>Report</span>
+                <span>Project</span>
+                <span>Severity</span>
+                <span>Condition Score</span>
+                <span>Length / Width</span>
+                <span>Status</span>
+                <span>Submitted By</span>
+                <span></span>
             </div>
-            {% else %}
-            <div class="p-4 text-muted d-flex align-items-center gap-2">
-                <div class="icon-badge icon-badge-sm">{{ icon_clipboard('') }}</div>
-                <span>No reports have been submitted yet.</span>
+            {% for row in rows %}
+            <div class="dl-row dl-row-{{ row.severity|lower if row.severity in ['Low', 'Medium', 'High'] else 'none' }} reveal">
+                <div class="dl-cell dl-index">{{ loop.index }}</div>
+                <div class="dl-cell dl-lead">
+                    <span class="dl-strong">RPT-{{ '%04d'|format(row.report.id) }}</span>
+                    <span class="dl-sub">{{ row.report.location }} {{ gps_badge(row.report) }}</span>
+                </div>
+                <div class="dl-cell" data-label="Project">{{ row.project_name }}</div>
+                <div class="dl-cell">{{ severity_badge(row.severity) }}</div>
+                <div class="dl-cell">{% if row.report.surface_type == "Road" %}{{ condition_score_badge(row.condition_score, row.condition_rating) }}{% else %}<span class="text-muted">N/A</span>{% endif %}</div>
+                <div class="dl-cell">{{ crack_measurement_display(row.severity, row.report.source_type, row.crack_length_cm, row.crack_width_cm, row.crack_length_px, row.crack_width_px, row.crack_area_px) }}</div>
+                <div class="dl-cell">{{ status_badge(row.report.status) }}</div>
+                <div class="dl-cell" data-label="By">
+                    {{ row.inspector_name }}
+                    <span class="dl-sub">{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                </div>
+                <div class="dl-cell dl-action">
+                    <a href="/admin/reports/{{ row.report.id }}/delete" class="row-action row-action-danger">Delete</a>
+                </div>
             </div>
-            {% endif %}
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_clipboard('') }}</div>
+            <h4 class="mb-2">No reports yet</h4>
+            <p class="text-muted mb-0">Reports submitted by Inspectors will show up here.</p>
+        </div>
+        {% endif %}
     </main>
 </div>
 {% endblock %}

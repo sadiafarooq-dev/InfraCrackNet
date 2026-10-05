@@ -1,6 +1,40 @@
 
 
 (function () {
+    // ---- Shared helpers for choosing one video or several photos (Upload step) ----
+    function isVideoFile(file) {
+        if (file.type) {
+            return file.type.indexOf('video/') === 0;
+        }
+        return /\.(mp4|mov|avi|mkv|webm)$/i.test(file.name);
+    }
+
+    // The file input itself is the one source of truth for what is chosen.
+    // Setting .files by code does not fire a 'change' event, so callers
+    // dispatch one afterwards.
+    function setInputFiles(input, files) {
+        var dt = new DataTransfer();
+        files.forEach(function (f) { dt.items.add(f); });
+        input.files = dt.files;
+    }
+
+    // Applies the rules: a video goes on its own; photos only otherwise, and
+    // never more than max. Returns { files, note } (note = what was dropped).
+    function applyPickRules(files, max) {
+        var note = '';
+        var photos = files.filter(function (f) { return !isVideoFile(f); });
+        var videos = files.filter(isVideoFile);
+        if (files.length > 1 && videos.length) {
+            note = 'A video has to be uploaded on its own, so it was skipped.';
+            files = photos.length ? photos : [videos[0]];
+        }
+        if (files.length > 1 && files.length > max) {
+            files = files.slice(0, max);
+            note = 'You can add up to ' + max + ' photos to one report. The rest were left out.';
+        }
+        return { files: files, note: note };
+    }
+
     function setupCameraBox(box) {
         var openBtn = box.querySelector('[data-open-camera]');
         var liveWrap = box.querySelector('[data-camera-live]');
@@ -71,21 +105,34 @@
             canvas.toBlob(function (blob) {
                 if (!blob) { return; }
                 var file = new File([blob], 'capture-' + Date.now() + '.jpg', { type: 'image/jpeg' });
-                var dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fileInput.files = dataTransfer.files;
-
-                if (previewImg) {
-                    previewImg.src = URL.createObjectURL(blob);
+                if (fileInput.multiple) {
+                    // Upload step (several photos allowed): a captured photo is
+                    // ADDED to the photos already chosen (a video, if one was
+                    // chosen, is replaced by the new photo). The picture list
+                    // below the box shows it, so no big preview here.
+                    var current = Array.prototype.slice.call(fileInput.files || []).filter(function (f) { return !isVideoFile(f); });
+                    current.push(file);
+                    var max = parseInt(fileInput.getAttribute('data-max-photos'), 10) || 6;
+                    var ruled = applyPickRules(current, max);
+                    setInputFiles(fileInput, ruled.files);
+                    liveWrap.hidden = true;
+                    openBtn.hidden = false;
+                    openBtn.textContent = 'Take another photo';
+                } else {
+                    // A single-photo box (for example the follow-up photo
+                    // page): the capture REPLACES any earlier one, and shows
+                    // a preview with a Retake button, as it always did.
+                    setInputFiles(fileInput, [file]);
+                    if (previewImg) {
+                        previewImg.src = URL.createObjectURL(blob);
+                    }
+                    previewWrap.hidden = false;
+                    liveWrap.hidden = true;
                 }
-                previewWrap.hidden = false;
-                liveWrap.hidden = true;
                 stopStream();
-                // Setting .files programmatically (above) does not fire a
-                // native 'change' event on its own -- dispatch one so the
-                // upload-feedback logic below (the file-chip / video-options
-                // reveal, section 80) reacts to a live-camera capture the
-                // same way it reacts to a gallery pick.
+                // Setting .files by code does not fire a native 'change'
+                // event, so dispatch one: the photo list below reacts to a
+                // live-camera capture the same way it reacts to a gallery pick.
                 fileInput.dispatchEvent(new Event('change'));
             }, 'image/jpeg', 0.92);
         });
@@ -129,13 +176,18 @@
         var videoOptions = document.querySelector('[data-video-options]');
         var floorField = document.querySelector('[data-floor-field]');
         var videoHint = document.querySelector('[data-video-hint]');
-        var previewWrap = document.querySelector('[data-camera-preview]');
         var roadRadio = document.querySelector('#video-surface-road');
         var buildingRadio = document.querySelector('#video-surface-building');
+        var photoList = document.querySelector('[data-photo-list]');
+        var pickNote = document.querySelector('[data-pick-note]');
+        var addInput = document.querySelector('[data-add-input]');
+        var openCameraBtn = document.querySelector('[data-open-camera]');
+        var maxPhotos = parseInt(fileInput.getAttribute('data-max-photos'), 10) || 6;
+        var thumbUrls = [];
 
         var HINTS = {
             Road: 'We’ll scan the footage frame-by-frame for road damage (potholes, alligator cracking, etc) and box the clearest frame.',
-            Building: 'We’ll estimate which floor/height each part was filmed at — enter the floor count below.'
+            Building: 'We’ll estimate which floor/height each part was filmed at. Enter the floor count below.'
         };
 
         function formatSize(bytes) {
@@ -145,11 +197,22 @@
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        function isVideoFile(file) {
-            if (file.type) {
-                return file.type.indexOf('video/') === 0;
-            }
-            return /\.(mp4|mov|avi|mkv|webm)$/i.test(file.name);
+        function showNote(text) {
+            if (!pickNote) { return; }
+            pickNote.textContent = text || '';
+            pickNote.hidden = !text;
+        }
+
+        function currentFiles() {
+            return Array.prototype.slice.call(fileInput.files || []);
+        }
+
+        // Puts a new list of files into the input and refreshes the screen.
+        function setFiles(files, note) {
+            var ruled = applyPickRules(files, maxPhotos);
+            setInputFiles(fileInput, ruled.files);
+            showNote(ruled.note || note || '');
+            refresh();
         }
 
         function updateFloorVisibility() {
@@ -163,18 +226,67 @@
             }
         }
 
-        function refresh() {
-            var file = fileInput.files && fileInput.files[0];
+        function clearThumbs() {
+            thumbUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+            thumbUrls = [];
+            if (photoList) { photoList.innerHTML = ''; }
+        }
 
-            if (!file) {
+        function buildPhotoList(files) {
+            clearThumbs();
+            if (!photoList) { return; }
+            files.forEach(function (file, index) {
+                var url = URL.createObjectURL(file);
+                thumbUrls.push(url);
+                var tile = document.createElement('div');
+                tile.className = 'photo-pick';
+                var img = document.createElement('img');
+                img.src = url;
+                img.alt = 'Photo ' + (index + 1);
+                var tag = document.createElement('span');
+                tag.className = 'photo-pick-num';
+                tag.textContent = index === 0 ? 'Main' : String(index + 1);
+                var remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'photo-pick-remove';
+                remove.setAttribute('aria-label', 'Remove photo ' + (index + 1));
+                remove.innerHTML = '&times;';
+                remove.addEventListener('click', function () {
+                    var rest = currentFiles();
+                    rest.splice(index, 1);
+                    setFiles(rest);
+                });
+                tile.appendChild(img);
+                tile.appendChild(tag);
+                tile.appendChild(remove);
+                photoList.appendChild(tile);
+            });
+            if (files.length < maxPhotos && addInput) {
+                var add = document.createElement('button');
+                add.type = 'button';
+                add.className = 'photo-pick-add';
+                add.innerHTML = '<span aria-hidden="true">+</span>Add more';
+                add.addEventListener('click', function () { addInput.click(); });
+                photoList.appendChild(add);
+            }
+            photoList.hidden = false;
+        }
+
+        function refresh() {
+            var files = currentFiles();
+
+            if (!files.length) {
                 chip.hidden = true;
+                clearThumbs();
+                if (photoList) { photoList.hidden = true; }
                 if (videoOptions) {
                     videoOptions.hidden = true;
                 }
+                if (openCameraBtn) { openCameraBtn.textContent = 'Open Live Camera'; }
                 return;
             }
 
-            var video = isVideoFile(file);
+            var video = isVideoFile(files[0]);
             if (videoOptions) {
                 videoOptions.hidden = !video;
                 if (video) {
@@ -182,27 +294,43 @@
                 }
             }
 
-            // The live-camera preview above already shows the captured photo
-            // with its own Retake button -- skip the text chip in that one
-            // case so there are never two "you picked something" indicators
-            // on screen together. A gallery pick (photo or video) has no
-            // such preview, so the chip is the only indicator there.
-            var cameraPreviewShown = !!(previewWrap && !previewWrap.hidden);
-            if (cameraPreviewShown) {
-                chip.hidden = true;
-                return;
+            // Photos show as small pictures (each can be removed); a video has
+            // no picture, so it just shows in the text chip below.
+            if (video) {
+                clearThumbs();
+                if (photoList) { photoList.hidden = true; }
+            } else {
+                buildPhotoList(files);
             }
 
+            var total = files.reduce(function (sum, f) { return sum + f.size; }, 0);
             chip.hidden = false;
             if (chipName) {
-                chipName.textContent = file.name;
+                chipName.textContent = (files.length === 1)
+                    ? files[0].name
+                    : files.length + ' photos selected';
             }
             if (chipMeta) {
-                chipMeta.textContent = (video ? 'Video' : 'Photo') + ' · ' + formatSize(file.size);
+                chipMeta.textContent = (video ? 'Video' : (files.length === 1 ? 'Photo' : 'Photos of the same crack'))
+                    + ' · ' + formatSize(total);
             }
         }
 
-        fileInput.addEventListener('change', refresh);
+        // The Inspector chose files in the normal file window (replaces the
+        // choice) -- or code above dispatched 'change' after a camera capture.
+        fileInput.addEventListener('change', function () {
+            setFiles(currentFiles());
+        });
+        if (addInput) {
+            addInput.addEventListener('change', function () {
+                var added = Array.prototype.slice.call(addInput.files || []);
+                addInput.value = '';
+                if (!added.length) { return; }
+                // Adding to a video replaces it with the new photos.
+                var base = currentFiles().filter(function (f) { return !isVideoFile(f); });
+                setFiles(base.concat(added));
+            });
+        }
         if (roadRadio) {
             roadRadio.addEventListener('change', updateFloorVisibility);
         }
@@ -212,6 +340,7 @@
         if (chipChange) {
             chipChange.addEventListener('click', function () {
                 fileInput.value = '';
+                showNote('');
                 refresh();
             });
         }

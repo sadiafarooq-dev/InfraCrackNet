@@ -94,6 +94,11 @@ def analyze_building_video(video_path: str, total_floors: int, upload_dir: str):
             "crack_width_px": int or None,
             "crack_area_px": int or None,
             "frames_checked": int,
+            "all_frames": [ {"path", "label", "confidence", "timestamp", "is_winner"}, ... ],
+            # ^ every trusted frame (confident shape, safe zone), permanently
+            # saved (not just the one "winning" frame above) -- powers the
+            # "See All Frames" gallery. Empty list if nothing was ever
+            # trusted.
         }
 
     model3_severity is None only if the trained Model 3 file isn't in place
@@ -193,6 +198,28 @@ def analyze_building_video(video_path: str, total_floors: int, upload_dir: str):
                 key=lambda r: (-SEVERITY_RANK.get(r["severity_label"], 0), r["timestamp"]),
             )[0]
 
+            # Every trusted frame (confident shape, safe zone), saved
+            # PERMANENTLY -- not just the one "winning" frame below -- so
+            # the "See All Frames" gallery on the Report Detail / Report
+            # Review pages can show everything the AI flagged, in timestamp
+            # order, with the winning frame marked. See PROJECT_LOG.md's
+            # "All Frames" feature.
+            all_frames = []
+            for rec in sorted(trusted_hits, key=lambda r: r["timestamp"]):
+                rec_filename = None
+                if rec["annotated_path"] and os.path.exists(rec["annotated_path"]):
+                    rec_filename = f"{uuid.uuid4().hex}_frame.jpg"
+                    shutil.copyfile(rec["annotated_path"], os.path.join(upload_dir, rec_filename))
+                if not rec_filename:
+                    continue
+                all_frames.append({
+                    "path": rec_filename,
+                    "label": rec["severity_label"],
+                    "confidence": rec["confidence"],
+                    "timestamp": rec["timestamp"],
+                    "is_winner": rec is best,
+                })
+
             photo_filename = f"{uuid.uuid4().hex}.jpg"
             shutil.copyfile(best["frame_path"], os.path.join(upload_dir, photo_filename))
 
@@ -212,6 +239,7 @@ def analyze_building_video(video_path: str, total_floors: int, upload_dir: str):
                 "crack_width_px": best["crack_width_px"],
                 "crack_area_px": best["crack_area_px"],
                 "frames_checked": frames_checked,
+                "all_frames": all_frames,
             }
 
         # No trusted crack shape anywhere in the safe zone -- a real, honest
@@ -254,6 +282,7 @@ def analyze_building_video(video_path: str, total_floors: int, upload_dir: str):
             "crack_width_px": None,
             "crack_area_px": None,
             "frames_checked": frames_checked,
+            "all_frames": [],
         }
 
     finally:

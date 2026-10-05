@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import public_navbar, public_footer, icon_hardhat %}
+{% from "macros.html" import public_navbar, public_footer, icon_hardhat, icon_road, icon_building_floor, icon_magnifier, icon_clipboard, icon_check %}
 
 {% block navbar %}{{ public_navbar('how-it-works', user) }}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -10,55 +10,79 @@
     {{ icon_hardhat('decor-icon', 'top:20px; right:8%; width:80px; height:80px; transform:rotate(10deg);') }}
     <div class="container position-relative" style="z-index:1;">
         <span class="eyebrow">HOW IT WORKS</span>
-        <h1 class="hero-headline hero-headline-sm">From First Photo to <span class="hl-accent">Final Fix</span></h1>
+        <h1 class="hero-headline hero-headline-sm">From First Capture to <span class="hl-accent">Final Fix</span></h1>
+        <p class="hero-subtext">Whether it's a quick road photo or a full building video walkthrough, every report follows the same path from the field to a decision.</p>
         <span class="crack-accent mx-auto" style="--crack-w: 190px;"></span>
     </div>
 </section>
 
+<!-- Two Ways to Capture -->
 <section class="section-block">
-    <div class="container" style="max-width: 880px;">
-        <div class="stepper-item mb-0 reveal">
-            <div>
-                <div class="stepper-badge">1</div>
-                <div class="stepper-connector"></div>
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="eyebrow">STEP ONE</span>
+            <h2 class="section-heading">Two Ways to Capture</h2>
+            <span class="crack-accent mx-auto" style="--crack-w: 120px;"></span>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 reveal">
+                <div class="step-card h-100">
+                    <div class="icon-badge my-3">{{ icon_road('step-icon') }}</div>
+                    <h4 class="fw-semibold">Road: A Quick Photo</h4>
+                    <p class="text-muted mb-0">For a road surface, the Inspector just snaps a photo on site, pins the location, and adds a couple of quick notes. That's it. No extra setup.</p>
+                </div>
             </div>
-            <div>
-                <h5>Inspector captures a photo</h5>
-                <p class="text-muted">On site, the Inspector uploads a photo or short video of the crack, pins the location, and answers a few quick context questions.</p>
+            <div class="col-md-6 reveal">
+                <div class="step-card h-100">
+                    <div class="icon-badge icon-badge-navy my-3">{{ icon_building_floor('step-icon') }}</div>
+                    <h4 class="fw-semibold">Building: A Video Walkthrough</h4>
+                    <p class="text-muted mb-0">For a building, the Inspector can upload a short walkthrough video instead. InfraCrackNet reads through the footage, estimates which floor each part was filmed at, and picks out the clearest frame of the crack automatically.</p>
+                </div>
             </div>
         </div>
-        <div class="stepper-item mb-0 reveal">
-            <div>
-                <div class="stepper-badge">2</div>
-                <div class="stepper-connector"></div>
+    </div>
+</section>
+
+<!-- Then, one process for both -->
+<section class="section-block section-tint">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="eyebrow">STEP TWO</span>
+            <h2 class="section-heading">Then, One Process for Both</h2>
+            <span class="crack-accent mx-auto" style="--crack-w: 120px;"></span>
+        </div>
+        <div class="row g-4 mt-2 text-start">
+            <div class="col-md-4 reveal">
+                <div class="step-card h-100">
+                    <div class="icon-badge my-3">{{ icon_magnifier('step-icon') }}</div>
+                    <h5 class="fw-semibold">AI Analyzes It</h5>
+                    <p class="text-muted mb-0">Three AI models check whether there's a crack, classify the damage, and trace/measure its severity, in seconds.</p>
+                </div>
             </div>
-            <div>
-                <h5>AI analyzes it instantly</h5>
-                <p class="text-muted">Three AI models check whether there is a crack, classify the damage type, and trace/measure its severity — in seconds.</p>
+            <div class="col-md-4 reveal">
+                <div class="step-card h-100">
+                    <div class="icon-badge icon-badge-navy my-3">{{ icon_clipboard('step-icon') }}</div>
+                    <h5 class="fw-semibold">An Engineer Reviews</h5>
+                    <p class="text-muted mb-0">The findings land in the Engineer's Review Queue, where they confirm or override the AI and set the cause, treatment, and status.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="step-card h-100">
+                    <div class="icon-badge my-3">{{ icon_check('step-icon') }}</div>
+                    <h5 class="fw-semibold">Everyone Tracks It to Resolution</h5>
+                    <p class="text-muted mb-0">The Inspector sees the decision on their report, and Admin can watch trends and follow-ups across the whole system.</p>
+                </div>
             </div>
         </div>
-        <div class="stepper-item mb-0 reveal">
-            <div>
-                <div class="stepper-badge">3</div>
-                <div class="stepper-connector"></div>
-            </div>
-            <div>
-                <h5>Engineer reviews and decides</h5>
-                <p class="text-muted">An Engineer checks the AI findings, confirms or overrides them, and sets the cause, treatment, and status.</p>
-            </div>
-        </div>
-        <div class="stepper-item reveal">
-            <div>
-                <div class="stepper-badge">4</div>
-            </div>
-            <div>
-                <h5>Everyone tracks it to resolution</h5>
-                <p class="text-muted">The Inspector sees the decision on their report, and Admin can watch trends and follow-ups across the whole system.</p>
-            </div>
-        </div>
-        <div class="text-center mt-5">
-            <span class="crack-accent mx-auto" style="--crack-w: 230px;"></span>
-        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-band">
+    <div class="container position-relative" style="z-index:1;">
+        <h2 class="fw-bold mb-3">Try It Yourself</h2>
+        <p>Create a free account and submit your first report (photo or video) in minutes.</p>
+        <a href="/signup" class="btn btn-primary px-4">Get Started Free</a>
     </div>
 </section>
 

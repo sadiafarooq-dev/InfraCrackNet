@@ -16,11 +16,14 @@ from models.user import User
 from models.report import Report
 from models.audit_log import AuditLogEntry, log_action
 from models.app_settings import get_settings, generate_registration_code
+from models.project import Project, ProjectInspector, ProjectEngineer
 from time_utils import register_localtime
+from asset_version import register_asset_version
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory=["templates", "admin/templates"])
 register_localtime(templates)
+register_asset_version(templates)
 
 
 def require_admin(user):
@@ -530,12 +533,14 @@ def all_reports(request: Request, user=Depends(get_current_user), session: Sessi
         return RedirectResponse("/login", status_code=303)
 
     reports = session.exec(select(Report).order_by(Report.created_at.desc())).all()
+    project_names = {p.id: p.name for p in session.exec(select(Project)).all()}
     rows = []
     for r in reports:
         inspector = session.get(User, r.inspector_id)
         rows.append({
             "report": r,
             "inspector_name": inspector.name if inspector else "Unknown",
+            "project_name": project_names.get(r.project_id, "Unassigned"),
             "severity": r.model3_severity if r.analysis_run_at else None,
             "condition_score": r.condition_score if r.analysis_run_at else None,
             "condition_rating": r.condition_rating if r.analysis_run_at else None,
@@ -600,4 +605,168 @@ def audit_log_page(request: Request, user=Depends(get_current_user), session: Se
 
     entries = session.exec(select(AuditLogEntry).order_by(AuditLogEntry.created_at.desc())).all()
     return templates.TemplateResponse(request, "audit_log.html", {"user": user, "entries": entries})
+
+
+# ---------------------------------------------------------------------
+# Projects -- a genuinely new feature (see PROJECT_LOG.md): a Project is a
+# specific site (e.g. "Metro Bridge, North Span") that collects many crack
+# reports over time. Only Admin creates/edits Projects, and picks which
+# Inspectors and which Engineers are assigned to each one -- Inspectors only
+# ever see their own assigned Projects when starting a New Report, and
+# Engineers only ever see reports from their own assigned Projects in their
+# Review Queue / All Reports.
+# ---------------------------------------------------------------------
+@router.get("/projects")
+def projects_page(request: Request, user=Depends(get_current_user), session: Session = Depends(get_session)):
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+
+    projects = session.exec(select(Project).order_by(Project.name)).all()
+    rows = []
+    for p in projects:
+        inspector_count = len(session.exec(
+            select(ProjectInspector).where(ProjectInspector.project_id == p.id)
+        ).all())
+        engineer_count = len(session.exec(
+            select(ProjectEngineer).where(ProjectEngineer.project_id == p.id)
+        ).all())
+        report_count = len(session.exec(select(Report).where(Report.project_id == p.id)).all())
+        rows.append({
+            "project": p,
+            "inspector_count": inspector_count,
+            "engineer_count": engineer_count,
+            "report_count": report_count,
+        })
+
+    return templates.TemplateResponse(request, "projects.html", {"user": user, "rows": rows})
+
+
+def _assignable_staff(session: Session):
+    """Every active-or-not Inspector and Engineer account, for the checkbox
+    lists on the Create/Edit Project forms -- Admin picks from the real
+    account list rather than typing names."""
+    inspectors = session.exec(select(User).where(User.role == "Inspector").order_by(User.name)).all()
+    engineers = session.exec(select(User).where(User.role == "Engineer").order_by(User.name)).all()
+    return inspectors, engineers
+
+
+@router.get("/projects/new")
+def new_project_page(request: Request, user=Depends(get_current_user), session: Session = Depends(get_session)):
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+
+    inspectors, engineers = _assignable_staff(session)
+    return templates.TemplateResponse(
+        request,
+        "new_project.html",
+        {"user": user, "inspectors": inspectors, "engineers": engineers,
+         "selected_inspector_ids": [], "selected_engineer_ids": []},
+    )
+
+
+@router.post("/projects/new")
+def new_project_submit(
+    request: Request,
+    name: str = Form(...),
+    location: str = Form(""),
+    inspector_ids: list[int] = Form([]),
+    engineer_ids: list[int] = Form([]),
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+
+    project = Project(name=name, location=location.strip() or None)
+    session.add(project)
+    session.flush()
+
+    for uid in inspector_ids:
+        session.add(ProjectInspector(project_id=project.id, user_id=uid))
+    for uid in engineer_ids:
+        session.add(ProjectEngineer(project_id=project.id, user_id=uid))
+
+    log_action(
+        session, actor_name=user.name, action="Created Project",
+        details=f"Created project \"{project.name}\" with {len(inspector_ids)} inspector(s) and {len(engineer_ids)} engineer(s) assigned",
+    )
+    session.commit()
+
+    return RedirectResponse("/admin/projects", status_code=303)
+
+
+@router.get("/projects/{project_id}/edit")
+def edit_project_page(
+    project_id: int,
+    request: Request,
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+    project = session.get(Project, project_id)
+    if not project:
+        return RedirectResponse("/admin/projects", status_code=303)
+
+    inspectors, engineers = _assignable_staff(session)
+    selected_inspector_ids = [
+        row.user_id for row in session.exec(
+            select(ProjectInspector).where(ProjectInspector.project_id == project_id)
+        ).all()
+    ]
+    selected_engineer_ids = [
+        row.user_id for row in session.exec(
+            select(ProjectEngineer).where(ProjectEngineer.project_id == project_id)
+        ).all()
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "edit_project.html",
+        {
+            "user": user, "project": project, "inspectors": inspectors, "engineers": engineers,
+            "selected_inspector_ids": selected_inspector_ids, "selected_engineer_ids": selected_engineer_ids,
+        },
+    )
+
+
+@router.post("/projects/{project_id}/edit")
+def edit_project_submit(
+    project_id: int,
+    request: Request,
+    name: str = Form(...),
+    location: str = Form(""),
+    inspector_ids: list[int] = Form([]),
+    engineer_ids: list[int] = Form([]),
+    user=Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not require_admin(user):
+        return RedirectResponse("/login", status_code=303)
+    project = session.get(Project, project_id)
+    if not project:
+        return RedirectResponse("/admin/projects", status_code=303)
+
+    project.name = name
+    project.location = location.strip() or None
+    session.add(project)
+
+    # Replace the assignment rows wholesale -- simplest correct way to sync
+    # "whatever's checked now" without diffing old vs new one by one.
+    for row in session.exec(select(ProjectInspector).where(ProjectInspector.project_id == project_id)).all():
+        session.delete(row)
+    for row in session.exec(select(ProjectEngineer).where(ProjectEngineer.project_id == project_id)).all():
+        session.delete(row)
+    for uid in inspector_ids:
+        session.add(ProjectInspector(project_id=project_id, user_id=uid))
+    for uid in engineer_ids:
+        session.add(ProjectEngineer(project_id=project_id, user_id=uid))
+
+    log_action(
+        session, actor_name=user.name, action="Updated Project",
+        details=f"Updated project \"{project.name}\" -- now {len(inspector_ids)} inspector(s) and {len(engineer_ids)} engineer(s) assigned",
+    )
+    session.commit()
+
+    return RedirectResponse("/admin/projects", status_code=303)
 

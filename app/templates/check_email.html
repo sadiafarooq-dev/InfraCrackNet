@@ -5,7 +5,7 @@
 <nav class="navbar auth-header">
     <div class="container">
         <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
-        <a class="nav-link" href="/">&larr; Back to Home</a>
+        <a class="btn btn-outline-primary btn-sm px-3" href="/">&larr; Back to Home</a>
     </div>
 </nav>
 {% endblock %}
@@ -22,17 +22,17 @@
         </div>
         {% if really_sent %}
         <p class="text-center text-muted mb-3" style="font-size:0.95rem; max-width:340px; margin-left:auto; margin-right:auto;">
-            We've sent a real password reset email to {{ email }}. Click the link in that email to continue &mdash; it expires in 30 minutes. (Don't see it? Check your Spam/Junk folder too.)
+            We've sent a real password reset email to {{ email }}. Click the link in that email to continue. It expires in 30 minutes. (Don't see it? Check your Spam/Junk folder too.)
         </p>
         {% else %}
         <p class="text-center text-muted mb-3" style="font-size:0.95rem; max-width:340px; margin-left:auto; margin-right:auto;">
-            We tried to send a password reset link to {{ email }}. Click the link below to continue &mdash; it expires in 30 minutes.
+            We tried to send a password reset link to {{ email }}. Click the link below to continue. It expires in 30 minutes.
         </p>
 
         {% if reset_link %}
         <div class="alert alert-info" style="font-size:0.85rem;">
             Real email sending isn't turned on for this computer yet, so instead of landing in
-            your inbox, your actual reset link is right here &mdash; it works exactly like the
+            your inbox, your actual reset link is right here. It works exactly like the
             emailed one would.
             <div class="mt-2">
                 <a href="{{ reset_link }}" class="btn btn-primary btn-sm w-100">Continue to Reset Password</a>

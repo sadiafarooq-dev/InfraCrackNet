@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import engineer_sidebar, status_badge, severity_badge, condition_score_badge, crack_measurement_display, gps_badge %}
+{% from "macros.html" import engineer_sidebar, status_badge, gps_badge, icon_clipboard %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -8,12 +8,20 @@
 <div class="app-shell">
     {{ engineer_sidebar('all-reports', user) }}
     <main class="app-main">
-        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
-            <h2 class="page-title mb-0">All Reports</h2>
-            <form method="get" action="/engineer/reports" style="max-width:320px; width:100%;">
-                <input type="text" name="q" class="form-control" placeholder="Search by ID or location" value="{{ q }}">
-            </form>
+        <h2 class="page-title mb-1">All Reports</h2>
+        <p class="text-muted mb-4">{% if q or project_id %}{{ rows|length }} report{{ "s" if rows|length != 1 else "" }} found{% else %}Every report across your projects, and where it stands{% if rows %} ({{ rows|length }} in total){% endif %}{% endif %}</p>
+
+        <form method="get" action="/engineer/reports" class="mb-3" style="max-width:360px;">
+            {% if project_id %}<input type="hidden" name="project_id" value="{{ project_id }}">{% endif %}
+            <input type="text" name="q" class="form-control" placeholder="Search by ID or location..." value="{{ q }}">
+        </form>
+
+        {% if project_id %}
+        <div class="active-filter">
+            <span>Showing project: <strong>{{ project_filter_name }}</strong></span>
+            <a href="/engineer/reports{{ '?q=' ~ (q|urlencode) if q else '' }}">Clear filter</a>
         </div>
+        {% endif %}
 
         {% if rows %}
         <div class="table-card">
@@ -23,11 +31,8 @@
                     <tr>
                         <th>ID</th>
                         <th>Location</th>
-                        <th>Submitted</th>
-                        <th>Type</th>
-                        <th>Severity</th>
-                        <th>Condition Score</th>
-                        <th>Length / Width</th>
+                        <th>Project</th>
+                        <th>Dated</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -35,15 +40,12 @@
                 <tbody>
                     {% for row in rows %}
                     <tr>
-                        <td><a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }}</a></td>
+                        <td><a href="/engineer/reports/{{ row.report.id }}" class="fw-semibold">RPT-{{ '%04d'|format(row.report.id) }}</a></td>
                         <td>{{ row.report.location }} {{ gps_badge(row.report) }}</td>
+                        <td>{{ row.project_name }}</td>
                         <td>{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</td>
-                        <td>{% if row.type_label %}{{ row.type_label }}{% else %}<span class="text-muted">Not yet available</span>{% endif %}</td>
-                        <td>{{ severity_badge(row.severity) }}</td>
-                        <td>{% if row.report.surface_type == "Road" %}{{ condition_score_badge(row.condition_score, row.condition_rating) }}{% else %}<span class="text-muted">N/A</span>{% endif %}</td>
-                        <td>{{ crack_measurement_display(row.severity, row.report.source_type, row.crack_length_cm, row.crack_width_cm, row.crack_length_px, row.crack_width_px, row.crack_area_px) }}</td>
                         <td>{{ status_badge(row.report.status) }}</td>
-                        <td><a href="/engineer/reports/{{ row.report.id }}">Review</a></td>
+                        <td class="text-end"><a href="/engineer/reports/{{ row.report.id }}" class="row-action">{{ "View" if row.report.status in ("Reviewed", "Resolved") else "Review" }} &rarr;</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -51,7 +53,19 @@
         </div>
         </div>
         {% else %}
-        <p class="text-muted">{% if q %}No reports match "{{ q }}".{% else %}No reports have been submitted yet.{% endif %}</p>
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_clipboard('') }}</div>
+            {% if q %}
+            <h4 class="mb-2">No reports match "{{ q }}"</h4>
+            <p class="text-muted mb-0">Try a different report ID or location.</p>
+            {% elif project_id %}
+            <h4 class="mb-2">No reports in this project yet</h4>
+            <p class="text-muted mb-0">Reports submitted under {{ project_filter_name }} will show up here.</p>
+            {% else %}
+            <h4 class="mb-2">No reports yet</h4>
+            <p class="text-muted mb-0">Once Inspectors submit reports on your projects, they will show up here.</p>
+            {% endif %}
+        </div>
         {% endif %}
     </main>
 </div>

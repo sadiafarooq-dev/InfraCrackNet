@@ -5,11 +5,11 @@
 {% block content_wrapper_class %}{% endblock %}
 
 {% block content %}
-{{ wizard_header(1, "Upload") }}
+{{ wizard_header(2, "Upload") }}
 
 <div class="wizard-card reveal">
     <h3 class="mb-1">Upload Photo or Video</h3>
-    <p class="text-muted mb-4">Capture a clear shot of the crack or damage. You can add more than one.</p>
+    <p class="text-muted mb-4">Capture a clear shot of the crack or damage. You can add up to {{ max_photos or 6 }} photos of the same crack, from different angles. A video has to go on its own.</p>
 
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
@@ -19,7 +19,7 @@
         <div class="dropzone mb-3" data-camera-capture>
             <div class="cam-badge">{{ icon_camera('') }}</div>
             <div class="dz-main mb-2">Take a photo or upload from your gallery</div>
-            <div class="dz-sub mb-3">JPG, PNG or MP4 &mdash; up to 25MB</div>
+            <div class="dz-sub mb-3">JPG, PNG or MP4 &middot; up to 25MB &middot; choose several photos at once if you like</div>
 
             <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-open-camera>Open Live Camera</button>
 
@@ -36,7 +36,9 @@
             </div>
             <canvas data-camera-canvas hidden></canvas>
 
-            <input type="file" name="photo" accept="image/*,video/mp4" capture="environment" class="form-control" required data-camera-input data-file-input>
+            <input type="file" name="photo" accept="image/*,video/mp4" capture="environment" multiple class="form-control" required data-camera-input data-file-input data-max-photos="{{ max_photos or 6 }}">
+            {# Picks extra photos to ADD to the ones already chosen. Has no name, so it is never sent itself. #}
+            <input type="file" accept="image/*" multiple hidden data-add-input>
         </div>
 
         {# -- "You picked a file" confirmation chip, redesigned section 80. Before
@@ -47,6 +49,9 @@
            file is actually selected (and hidden again while the live-camera photo
            preview above is showing its own picture, so there's never two
            "you picked something" indicators on screen at once). #}
+        <div class="photo-picks mb-3" data-photo-list hidden></div>
+        <p class="photo-pick-note mb-3" data-pick-note hidden></p>
+
         <div class="file-chip mb-4" data-file-chip hidden>
             <div class="icon-badge icon-badge-sm">{{ icon_check('') }}</div>
             <div class="file-chip-body">
@@ -65,7 +70,7 @@
            camera-capture.js detects the chosen file is actually a video -- a
            photo upload never sees it. #}
         <div class="video-options mb-4" data-video-options hidden>
-            <p class="fw-semibold mb-2">This is a video &mdash; what does it show?</p>
+            <p class="fw-semibold mb-2">This is a video. What does it show?</p>
             <div class="option-row mb-2">
                 <div class="option-choice">
                     <input type="radio" name="video_surface_type" id="video-surface-road" value="Road" checked>
@@ -85,7 +90,10 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">Continue &rarr;</button>
+        <div class="d-flex gap-2">
+            <a href="/inspector/reports/new/project" class="btn btn-outline-primary" style="flex:0 0 140px;">&larr; Back</a>
+            <button type="submit" class="btn btn-primary flex-grow-1">Continue &rarr;</button>
+        </div>
     </form>
 </div>
 {% endblock %}

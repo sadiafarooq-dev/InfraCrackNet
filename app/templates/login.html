@@ -1,14 +1,7 @@
 {% extends "base.html" %}
-{% from "macros.html" import logo_mark, icon_lock, icon_magnifier %}
+{% from "macros.html" import public_navbar, icon_lock, icon_magnifier %}
 
-{% block navbar %}
-<nav class="navbar auth-header">
-    <div class="container">
-        <a class="navbar-brand" href="/">{{ logo_mark(28) }}InfraCrackNet</a>
-        <a class="nav-link" href="/">&larr; Back to Home</a>
-    </div>
-</nav>
-{% endblock %}
+{% block navbar %}{{ public_navbar('signin', user) }}{% endblock %}
 
 {% block content_wrapper_class %}{% endblock %}
 

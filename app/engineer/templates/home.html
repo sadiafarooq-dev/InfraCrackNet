@@ -35,25 +35,36 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-body">
-                <h6 class="mb-3">Needs Your Attention</h6>
-                {% if attention_rows %}
-                {% for row in attention_rows %}
-                <div class="attention-row reveal">
-                    <a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }} &mdash; {{ row.report.location }}</a>
+        <h5 class="mb-3">Needs Your Attention</h5>
+        {% if attention_rows %}
+        <div class="report-card-grid">
+            {% for row in attention_rows %}
+            <a href="/engineer/reports/{{ row.report.id }}" class="report-card reveal">
+                <div class="report-card-head">
+                    <div class="icon-badge icon-badge-sm">{{ icon_clipboard() }}</div>
+                    <div>
+                        <div class="report-card-name">RPT-{{ '%04d'|format(row.report.id) }}</div>
+                        <div class="report-card-location">{{ row.report.location }}</div>
+                    </div>
+                </div>
+                <div class="report-card-footer">
+                    <span class="report-card-date">{{ (row.report.created_at | localtime).strftime("%b %d, %Y") }}</span>
                     {% if row.flagged %}
                     <span class="badge badge-flagged">Low Confidence</span>
                     {% else %}
                     <span class="badge bg-secondary-subtle text-secondary-emphasis">Pending Review</span>
                     {% endif %}
                 </div>
-                {% endfor %}
-                {% else %}
-                <p class="text-muted mb-0">Nothing pending review right now &mdash; you're all caught up.</p>
-                {% endif %}
-            </div>
+            </a>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state empty-state-compact">
+            <div class="icon-wrap">{{ icon_check('') }}</div>
+            <h5 class="mb-2">You're all caught up</h5>
+            <p class="text-muted mb-0">Nothing pending review right now.</p>
+        </div>
+        {% endif %}
     </main>
 </div>
 {% endblock %}

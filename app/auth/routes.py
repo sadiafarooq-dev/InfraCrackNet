@@ -12,9 +12,10 @@ from database import get_session
 from models.user import User
 from models.app_settings import get_settings
 from models.audit_log import log_action
-from auth.utils import hash_password, verify_password, generate_employee_code, generate_reset_token
+from auth.utils import hash_password, verify_password, generate_employee_code, generate_reset_token, get_current_user
 from email_utils import send_email
 from time_utils import register_localtime
+from asset_version import register_asset_version
 
 RESET_TOKEN_VALID_MINUTES = 30
 
@@ -41,12 +42,16 @@ def _send_reset_email(user, request) -> bool:
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 register_localtime(templates)
+register_asset_version(templates)
 
 
 # Login page
 @router.get("/login")
-def login_page(request: Request, signed_up: Optional[str] = None):
-    context = {}
+def login_page(request: Request, signed_up: Optional[str] = None, current_user=Depends(get_current_user)):
+    # current_user is only non-None if someone who's already signed in somehow
+    # lands back on this page -- that lets the navbar show their real avatar
+    # instead of a "Sign Up" button that wouldn't make sense for them.
+    context = {"user": current_user}
     if signed_up:
         context["success"] = "Account created! Sign in below with your new password."
     return templates.TemplateResponse(request, "login.html", context)
@@ -58,12 +63,13 @@ def login(
     email: str = Form(...),
     password: str = Form(...),
     session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
 ):
     user = session.exec(select(User).where(User.email == email)).first()
 
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
-            request, "login.html", {"error": "Wrong email or password."}
+            request, "login.html", {"error": "Wrong email or password.", "user": current_user}
         )
 
     request.session["user_id"] = user.id
@@ -79,10 +85,13 @@ def login(
     return RedirectResponse("/admin/dashboard", status_code=303)
 
 
-# Sign up page 
+# Sign up page
 @router.get("/signup")
-def signup_page(request: Request):
-    return templates.TemplateResponse(request, "signup.html")
+def signup_page(request: Request, current_user=Depends(get_current_user)):
+    # current_user lets the navbar show a real avatar instead of a "Sign In"
+    # button, for the rare case someone who's already signed in lands back
+    # on this page -- same reasoning as the Sign In page (section 116).
+    return templates.TemplateResponse(request, "signup.html", {"user": current_user})
 
 
 @router.post("/signup")
@@ -95,11 +104,13 @@ def signup(
     password: str = Form(...),
     confirm_password: str = Form(...),
     session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
 ):
     form_back = {
         "name": name,
         "email": email,
         "role": role,
+        "user": current_user,
     }
 
     current_code = get_settings(session).registration_code

@@ -113,6 +113,11 @@ def analyze_road_video(video_path: str, upload_dir: str):
             "crack_width_px": int or None,
             "crack_area_px": int or None,
             "frames_checked": int,
+            "all_frames": [ {"path", "label", "confidence", "timestamp", "is_winner"}, ... ],
+            # ^ every frame where a crack was actually flagged, permanently
+            # saved (not just the one "winning" frame above) -- powers the
+            # "See All Frames" gallery. Empty list if nothing was ever
+            # confidently detected.
         }
 
     model2_label is None only if Model 2's trained file isn't in place at
@@ -141,7 +146,7 @@ def analyze_road_video(video_path: str, upload_dir: str):
         saved_index = 0
         # Every sampled frame, kept so a representative one can be picked if
         # nothing is ever confidently detected.
-        all_frames = []
+        sampled_frames = []
         # Every sampled frame where Model 2 found at least one confident
         # detection -- the pool this function picks its one "winning" frame
         # from.
@@ -159,7 +164,7 @@ def analyze_road_video(video_path: str, upload_dir: str):
                 cv2.imwrite(frame_path, frame)
 
                 record = {"frame_path": frame_path, "timestamp": timestamp}
-                all_frames.append(record)
+                sampled_frames.append(record)
 
                 if model2_available:
                     detections = predict_crack_type_boxes(frame_path)
@@ -181,6 +186,30 @@ def analyze_road_video(video_path: str, upload_dir: str):
                 key=lambda r: (-r["detections"][0]["confidence"], r["timestamp"]),
             )[0]
             top_detection = best["detections"][0]
+
+            # Every frame where Model 2 found a confident detection, saved
+            # PERMANENTLY (not just the one "winning" frame above) so the
+            # "See All Frames" gallery on the Report Detail / Report Review
+            # pages can show everything the AI flagged, in timestamp order,
+            # with the winning frame marked -- see PROJECT_LOG.md's "All
+            # Frames" feature for why this was added.
+            all_frames = []
+            for rec in sorted(detected_frames, key=lambda r: r["timestamp"]):
+                rec_image = cv2.imread(rec["frame_path"])
+                if rec_image is None:
+                    continue
+                frame_filename = f"{uuid.uuid4().hex}_frame.jpg"
+                frame_full_path = os.path.join(upload_dir, frame_filename)
+                if not _draw_boxes(rec_image, rec["detections"], frame_full_path):
+                    continue
+                top_rec_detection = rec["detections"][0]
+                all_frames.append({
+                    "path": frame_filename,
+                    "label": top_rec_detection["label"],
+                    "confidence": top_rec_detection["confidence"],
+                    "timestamp": rec["timestamp"],
+                    "is_winner": rec is best,
+                })
 
             frame_image = cv2.imread(best["frame_path"])
 
@@ -225,6 +254,7 @@ def analyze_road_video(video_path: str, upload_dir: str):
                 "crack_width_px": crack_width_px,
                 "crack_area_px": crack_area_px,
                 "frames_checked": frames_checked,
+                "all_frames": all_frames,
             }
 
         # No confident detection anywhere in the video -- a real, honest
@@ -232,7 +262,7 @@ def analyze_road_video(video_path: str, upload_dir: str):
         # detected"), not an error. Save a representative frame from the
         # middle of the video so the report still has a real photo from the
         # video, instead of no image at all.
-        representative_pool = all_frames or [{
+        representative_pool = sampled_frames or [{
             "frame_path": os.path.join(temp_dir, "frame_0001.jpg"),
             "timestamp": 0,
         }]
@@ -276,6 +306,7 @@ def analyze_road_video(video_path: str, upload_dir: str):
             "crack_width_px": crack_width_px,
             "crack_area_px": crack_area_px,
             "frames_checked": frames_checked,
+            "all_frames": [],
         }
 
     finally:

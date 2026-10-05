@@ -58,7 +58,7 @@
                     </div>
                     {% endfor %}
                     {% else %}
-                    <p class="text-muted mb-0">Nothing recorded yet &mdash; real actions (new accounts, report reviews, etc.) will start showing up here as they happen.</p>
+                    <p class="text-muted mb-0">Nothing recorded yet. Real actions (new accounts, report reviews, etc.) will start showing up here as they happen.</p>
                     {% endif %}
                 </div>
             </div>
@@ -74,15 +74,15 @@
                             </div>
                         </div>
                         <ul class="severity-legend">
-                            <li><span class="legend-dot dot-low"></span>Low &mdash; {{ severity_stats.low.count }} ({{ severity_stats.low.pct }}%)</li>
-                            <li><span class="legend-dot dot-medium"></span>Medium &mdash; {{ severity_stats.medium.count }} ({{ severity_stats.medium.pct }}%)</li>
-                            <li><span class="legend-dot dot-high"></span>High &mdash; {{ severity_stats.high.count }} ({{ severity_stats.high.pct }}%)</li>
+                            <li><span class="legend-dot dot-low"></span>Low &middot; {{ severity_stats.low.count }} ({{ severity_stats.low.pct }}%)</li>
+                            <li><span class="legend-dot dot-medium"></span>Medium &middot; {{ severity_stats.medium.count }} ({{ severity_stats.medium.pct }}%)</li>
+                            <li><span class="legend-dot dot-high"></span>High &middot; {{ severity_stats.high.count }} ({{ severity_stats.high.pct }}%)</li>
                         </ul>
                     </div>
                     {% else %}
                     <div class="severity-placeholder">
                         {{ icon_gauge() }}
-                        <div>Not yet available &mdash; no reports have had their AI analysis run yet.</div>
+                        <div>Not yet available. No reports have had their AI analysis run yet.</div>
                     </div>
                     {% endif %}
                 </div>

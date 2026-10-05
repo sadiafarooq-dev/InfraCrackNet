@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import admin_sidebar, icon_people %}
+{% from "macros.html" import admin_sidebar %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -10,10 +10,7 @@
     <main class="app-main">
         <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="icon-badge icon-badge-sm">{{ icon_people() }}</div>
-                    <h2 class="page-title mb-1">User Management</h2>
-                </div>
+                <h2 class="page-title mb-1">User Management</h2>
                 <p class="text-muted mb-0">Manage inspector, engineer, and admin accounts</p>
             </div>
             <a href="/admin/users/new" class="btn btn-primary">+ Add User</a>
@@ -21,43 +18,39 @@
 
         {% if created %}
         <div class="alert alert-success">
-            New account created! Employee Code: <strong>{{ created }}</strong> &mdash; share this with them so they can sign up.
+            New account created! Employee Code: <strong>{{ created }}</strong>. Share this with them so they can sign up.
         </div>
         {% endif %}
 
-        <div class="card table-card">
-            <div class="table-responsive">
-                <table class="table mb-0 align-middle">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Role</th>
-                            <th>Email</th>
-                            <th>Employee Code</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in users %}
-                        <tr class="reveal">
-                            <td>{{ u.name }}</td>
-                            <td><span class="role-badge">{{ u.role }}</span></td>
-                            <td>{{ u.email }}</td>
-                            <td>{{ u.employee_code }}</td>
-                            <td>
-                                {% if u.status == 'Active' %}
-                                <span class="status-badge-active">Active</span>
-                                {% else %}
-                                <span class="status-badge-suspended">Suspended</span>
-                                {% endif %}
-                            </td>
-                            <td><a href="/admin/users/{{ u.id }}/edit">Edit</a></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="dl-list" style="--dl-cols: 2.2rem minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 2fr) minmax(0, 1.1fr) minmax(0, 0.9fr) auto;">
+            <div class="dl-head">
+                <span>#</span>
+                <span>Name</span>
+                <span>Role</span>
+                <span>Email</span>
+                <span>Employee Code</span>
+                <span>Status</span>
+                <span></span>
             </div>
+            {% for u in users %}
+            <div class="dl-row dl-row-{{ 'active' if u.status == 'Active' else 'suspended' }} reveal">
+                <div class="dl-cell dl-index">{{ loop.index }}</div>
+                <div class="dl-cell dl-lead dl-strong dl-clip">{{ u.name }}</div>
+                <div class="dl-cell"><span class="role-badge">{{ u.role }}</span></div>
+                <div class="dl-cell dl-clip" data-label="Email">{{ u.email }}</div>
+                <div class="dl-cell" data-label="Code">{{ u.employee_code }}</div>
+                <div class="dl-cell">
+                    {% if u.status == 'Active' %}
+                    <span class="status-badge-active">Active</span>
+                    {% else %}
+                    <span class="status-badge-suspended">Suspended</span>
+                    {% endif %}
+                </div>
+                <div class="dl-cell dl-action">
+                    <a href="/admin/users/{{ u.id }}/edit" class="row-action">Edit &rarr;</a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </main>
 </div>

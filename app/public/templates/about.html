@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import public_navbar, public_footer, icon_magnifier, illustration_building %}
+{% from "macros.html" import public_navbar, public_footer, icon_magnifier, icon_check, icon_road, icon_gauge, illustration_building %}
 
 {% block navbar %}{{ public_navbar('about', user) }}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -11,7 +11,7 @@
     <div class="container position-relative" style="z-index:1;">
         <span class="eyebrow">ABOUT US</span>
         <h1 class="hero-headline hero-headline-sm">Built to Catch <span class="hl-accent">Damage</span> Before It Spreads</h1>
-        <p class="hero-subtext">InfraCrackNet is a final year project at COMSATS University Islamabad, built to make crack inspection for roads and buildings faster, more consistent, and easier to track from first photo to final fix.</p>
+        <p class="hero-subtext">InfraCrackNet is a final year project at COMSATS University Islamabad, built to make crack inspection for roads and buildings faster, more consistent, and easier to track from first capture (photo or video) to final fix.</p>
         <span class="crack-accent mx-auto" style="--crack-w: 160px;"></span>
     </div>
 </section>
@@ -22,7 +22,7 @@
             <div class="col-md-7 reveal">
                 <span class="eyebrow">OUR MISSION</span>
                 <h3 class="fw-bold mb-3">Catching problems while they're still small</h3>
-                <p class="text-muted mb-0">Cracks in roads and buildings are usually reported too late, after they have already become expensive or dangerous. InfraCrackNet gives inspection teams a simple way to capture a photo, get an instant AI read on severity, and route it to the right engineer — so small problems get fixed while they are still small.</p>
+                <p class="text-muted mb-0">Cracks in roads and buildings are usually reported too late, after they have already become expensive or dangerous. InfraCrackNet gives inspection teams a simple way to capture a photo or video, get an instant AI read on severity, and route it to the right engineer, so small problems get fixed while they are still small.</p>
             </div>
             <div class="col-md-5 text-center reveal">
                 <div class="spot-illustration float-anim mb-3">{{ illustration_building(200) }}</div>
@@ -36,6 +36,50 @@
     </div>
 </section>
 
+
+<!-- The AI Behind It -->
+<section class="section-block section-tint">
+    <div class="container text-center">
+        <span class="eyebrow">THREE MODELS, ONE JOB EACH</span>
+        <h2 class="section-heading">The AI Behind Every Report</h2>
+        <span class="crack-accent mx-auto mb-4" style="--crack-w: 120px;"></span>
+        <div class="row g-4 mt-2 text-start">
+            <div class="col-md-4 reveal">
+                <div class="step-card">
+                    <div class="icon-badge my-3">{{ icon_check('step-icon') }}</div>
+                    <h5 class="fw-semibold">Is There a Crack?</h5>
+                    <p class="text-muted mb-0">The first model looks at a photo or video frame and decides whether there's a crack at all, with a confidence score attached.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="step-card">
+                    <div class="icon-badge icon-badge-navy my-3">{{ icon_road('step-icon') }}</div>
+                    <h5 class="fw-semibold">What Kind of Crack?</h5>
+                    <p class="text-muted mb-0">For road surfaces, the second model classifies the type of damage it's looking at, so engineers know what they're dealing with.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="step-card">
+                    <div class="icon-badge my-3">{{ icon_gauge('step-icon') }}</div>
+                    <h5 class="fw-semibold">How Bad Is It?</h5>
+                    <p class="text-muted mb-0">The third model traces the crack's actual shape and estimates its severity (Low, Medium, or High) with a real measurement in centimeters when possible.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-band">
+    <div class="container position-relative" style="z-index:1;">
+        <h2 class="fw-bold mb-3">See It In Action</h2>
+        <p>Explore how a report moves from first capture to final decision, or create a free account and try it yourself.</p>
+        <div class="d-flex gap-3 flex-wrap justify-content-center">
+            <a href="/signup" class="btn btn-primary px-4">Get Started Free</a>
+            <a href="/how-it-works" class="btn btn-outline-light px-4">See How It Works</a>
+        </div>
+    </div>
+</section>
 {% endblock %}
 
 {% block footer %}{{ public_footer('about') }}{% endblock %}

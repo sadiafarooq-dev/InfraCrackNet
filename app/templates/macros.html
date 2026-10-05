@@ -145,6 +145,13 @@ Not yet available
 </svg>
 {% endmacro %}
 
+{% macro icon_video(cls='decor-icon', style='') %}
+<svg class="{{ cls }}" style="{{ style }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2.5" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+  <path d="M15.5 10.1 L21 7.3 V16.7 L15.5 13.9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
 {% macro icon_clipboard(cls='decor-icon', style='') %}
 <svg class="{{ cls }}" style="{{ style }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect x="5" y="4" width="14" height="18" rx="1.6" stroke="currentColor" stroke-width="2"/>
@@ -211,6 +218,12 @@ Not yet available
 <svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
   <path d="M12 8 V16 M8 12 H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_folder(cls='') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M3 6.5 A1.5 1.5 0 0 1 4.5 5 H9.5 L11.5 7.5 H19.5 A1.5 1.5 0 0 1 21 9 V17.5 A1.5 1.5 0 0 1 19.5 19 H4.5 A1.5 1.5 0 0 1 3 17.5 Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
 </svg>
 {% endmacro %}
 
@@ -597,6 +610,7 @@ Not yet available
     <a href="/inspector/dashboard" class="{{ 'nav-active' if active == 'home' }}">{{ icon_home() }}Home</a>
     <a href="/inspector/reports/new" class="{{ 'nav-active' if active == 'new-report' }}">{{ icon_plus_circle() }}New Report</a>
     <a href="/inspector/reports" class="{{ 'nav-active' if active == 'my-reports' }}">{{ icon_list() }}My Reports</a>
+    <a href="/inspector/projects" class="{{ 'nav-active' if active == 'projects' }}">{{ icon_folder() }}Projects</a>
     {{ sidebar_section_label('Account') }}
     <a href="/notifications" class="{{ 'nav-active' if active == 'notifications' }}">{{ icon_bell() }}Notifications</a>
     <a href="/profile" class="{{ 'nav-active' if active == 'profile' }}">{{ icon_person() }}Profile</a>
@@ -608,17 +622,90 @@ Not yet available
 </aside>
 {% endmacro %}
 
+{% macro all_frames_gallery(all_frames) %}
+{# Every sampled video frame where a crack was actually flagged, not just the
+   single "best" one the app picked -- see PROJECT_LOG.md's "All Frames"
+   feature. Plain <details>/<summary>, no JavaScript.
+   Each thumbnail box is shaped like the video frame (16:9) and the photo is
+   SHRUNK TO FIT inside it, never cropped -- an earlier version cropped to a
+   short fixed box, which could cut off the top of the photo (and the crack
+   on it) on some videos. See PROJECT_LOG.md's "All Frames gallery fix". #}
+{% if all_frames %}
+<details class="frames-gallery">
+    <summary>See All Frames ({{ all_frames|length }} with a crack detected)</summary>
+    <div class="frames-gallery-grid">
+        {% for f in all_frames %}
+        <div class="frame-thumb{{ ' is-winner' if f.is_winner else '' }}">
+            <a href="/uploads/{{ f.path }}" target="_blank" rel="noopener" class="frame-thumb-pic">
+                <img src="/uploads/{{ f.path }}" alt="Flagged video frame">
+                {% if f.is_winner %}<span class="frame-thumb-badge">Selected</span>{% endif %}
+            </a>
+            <div class="frame-thumb-cap">{{ "%.1f"|format(f.timestamp) }}s &middot; {{ f.label }}{% if f.confidence is not none %} ({{ "%.0f"|format(f.confidence) }}%){% endif %}</div>
+        </div>
+        {% endfor %}
+    </div>
+</details>
+{% endif %}
+{% endmacro %}
+
+{% macro photo_results_grid(results, is_road=false) %}
+{# A report with several photos: what the AI found in EACH photo (saved when
+   the analysis was run). The first card is the most serious photo -- the one
+   whose result becomes the report's overall answer. Each card shows the
+   original photo and the AI's traced outline side by side. #}
+{% if results and results|length > 1 %}
+<section class="pr-section">
+    <h3 class="pr-title">All {{ results|length }} photos</h3>
+    <p class="pr-sub">Each photo was checked on its own. The overall result for this report comes from the most serious one, shown first.</p>
+    <div class="pr-grid">
+        {% for r in results %}
+        <article class="pr-card{{ ' is-lead' if loop.first else '' }}">
+            <div class="pr-pics">
+                <a href="/uploads/{{ r.photo }}" target="_blank" rel="noopener" class="pr-pic">
+                    <img src="/uploads/{{ r.photo }}" alt="Photo {{ loop.index }}">
+                    <span class="pr-pic-cap">Photo</span>
+                </a>
+                {% if r.annotated %}
+                <a href="/uploads/{{ r.annotated }}" target="_blank" rel="noopener" class="pr-pic">
+                    <img src="/uploads/{{ r.annotated }}" alt="AI outline for photo {{ loop.index }}">
+                    <span class="pr-pic-cap">AI outline</span>
+                </a>
+                {% else %}
+                <div class="pr-pic pr-pic-none"><span>No outline</span></div>
+                {% endif %}
+            </div>
+            <div class="pr-body">
+                {% if loop.first %}<span class="pr-lead-tag">Used for the overall result</span>{% endif %}
+                {% if r.failed %}
+                <p class="pr-failed">This photo could not be analyzed.</p>
+                {% else %}
+                <dl class="pr-facts">
+                    <div><dt>Crack Presence</dt><dd>{{ r.ai_label or 'Not available' }}{% if r.ai_confidence %} <span>{{ r.ai_confidence }}%</span>{% endif %}</dd></div>
+                    <div><dt>Severity</dt><dd>{{ r.severity or 'Not available' }}{% if r.severity_confidence %} <span>{{ r.severity_confidence }}%</span>{% endif %}</dd></div>
+                    {% if is_road %}
+                    <div><dt>Crack Type</dt><dd>{{ r.type_label or 'Not available' }}{% if r.type_confidence %} <span>{{ r.type_confidence }}%</span>{% endif %}</dd></div>
+                    {% endif %}
+                </dl>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endmacro %}
+
 {% macro wizard_header(step_num, step_label) %}
 <div class="wizard-topbar">
-    <span class="brand">InfraCrackNet</span>
-    <a href="/inspector/reports/new/cancel">Cancel</a>
+    <span class="brand">{{ logo_mark(24) }}InfraCrackNet</span>
+    <a href="/inspector/reports/new/cancel" class="btn btn-outline-secondary btn-sm">Cancel</a>
 </div>
 <div class="wizard-steps">
-    {% for i in range(1, 5) %}
+    {% for i in range(1, 6) %}
     <div class="step-bar {{ 'done' if i < step_num else ('active' if i == step_num else '') }}"></div>
     {% endfor %}
 </div>
-<p class="wizard-step-label">Step {{ step_num }} of 4 &mdash; {{ step_label }}</p>
+<p class="wizard-step-label">Step {{ step_num }} of 5 &middot; {{ step_label }}</p>
 {% endmacro %}
 
 
@@ -641,6 +728,7 @@ Not yet available
     <a href="/engineer/dashboard" class="{{ 'nav-active' if active == 'home' }}">{{ icon_home() }}Home</a>
     <a href="/engineer/queue" class="{{ 'nav-active' if active == 'queue' }}">{{ icon_clipboard('') }}Review Queue</a>
     <a href="/engineer/reports" class="{{ 'nav-active' if active == 'all-reports' }}">{{ icon_list() }}All Reports</a>
+    <a href="/engineer/projects" class="{{ 'nav-active' if active == 'projects' }}">{{ icon_folder() }}Projects</a>
     <a href="/engineer/follow-ups" class="{{ 'nav-active' if active == 'follow-ups' }}">{{ icon_compare() }}Follow-up Scan</a>
     {{ sidebar_section_label('Account') }}
     <a href="/notifications" class="{{ 'nav-active' if active == 'notifications' }}">{{ icon_bell() }}Notifications</a>
@@ -665,6 +753,7 @@ Not yet available
     <a href="/admin/dashboard" class="{{ 'nav-active' if active == 'overview' }}">{{ icon_home() }}Overview</a>
     <a href="/admin/trends" class="{{ 'nav-active' if active == 'trends' }}">{{ icon_trend() }}Trends</a>
     <a href="/admin/users" class="{{ 'nav-active' if active == 'users' }}">{{ icon_people() }}User Management</a>
+    <a href="/admin/projects" class="{{ 'nav-active' if active == 'projects' }}">{{ icon_folder() }}Projects</a>
     <a href="/admin/reports" class="{{ 'nav-active' if active == 'all-reports' }}">{{ icon_list() }}All Reports</a>
     <a href="/admin/audit-log" class="{{ 'nav-active' if active == 'audit-log' }}">{{ icon_audit() }}Audit Log</a>
     {{ sidebar_section_label('Account') }}
@@ -690,12 +779,15 @@ Not yet available
         {% if active == 'home' %}<span class="nav-link current">Home</span>{% else %}<a class="nav-link" href="/">Home</a>{% endif %}
         {% if active == 'about' %}<span class="nav-link current">About</span>{% else %}<a class="nav-link" href="/about">About</a>{% endif %}
         {% if active == 'how-it-works' %}<span class="nav-link current">How It Works</span>{% else %}<a class="nav-link" href="/how-it-works">How It Works</a>{% endif %}
+        {% if active == 'contact' %}<span class="nav-link current">Contact</span>{% else %}<a class="nav-link" href="/contact-us">Contact</a>{% endif %}
       </div>
       {% if user %}
       <a href="/profile" class="d-flex align-items-center gap-2 text-decoration-none navbar-user-link mt-2 mt-lg-0">
         {{ avatar(user, 32) }}
         <span class="navbar-user-name">{{ user.name }}</span>
       </a>
+      {% elif active == 'signin' %}
+      <a href="/signup" class="btn btn-primary btn-sm px-3 mt-2 mt-lg-0">Sign Up</a>
       {% else %}
       <a href="/login" class="btn btn-primary btn-sm px-3 mt-2 mt-lg-0">Sign In</a>
       {% endif %}
@@ -714,23 +806,26 @@ Not yet available
         </div>
         <p class="footer-tagline">AI-assisted crack detection for road and building inspection teams.</p>
       </div>
-      <div class="col-md-2">
+      <div class="col-6 col-md-3">
         <h6>Product</h6>
         {% if active == 'home' %}<span class="footer-current">Home</span>{% else %}<a href="/">Home</a>{% endif %}
         {% if active == 'about' %}<span class="footer-current">About</span>{% else %}<a href="/about">About</a>{% endif %}
         {% if active == 'how-it-works' %}<span class="footer-current">How It Works</span>{% else %}<a href="/how-it-works">How It Works</a>{% endif %}
+        {% if active == 'contact' %}<span class="footer-current">Contact</span>{% else %}<a href="/contact-us">Contact</a>{% endif %}
       </div>
-      <div class="col-md-6">
+      <div class="col-6 col-md-2">
         <h6>Account</h6>
         <a href="/login">Sign In</a>
         <a href="/signup">Sign Up</a>
+      </div>
+      <div class="col-6 col-md-3">
+        <h6>Resources</h6>
         {% if active == 'terms' %}<span class="footer-current">Terms &amp; Privacy</span>{% else %}<a href="/terms">Terms &amp; Privacy</a>{% endif %}
         {% if active == 'help' %}<span class="footer-current">Help &amp; FAQ</span>{% else %}<a href="/help">Help &amp; FAQ</a>{% endif %}
       </div>
     </div>
-    <div class="footer-bottom d-flex justify-content-between flex-wrap">
-      <span>&copy; 2026 InfraCrackNet — Final Year Project, COMSATS University Islamabad</span>
-      <span>InfraCrackNet</span>
+    <div class="footer-bottom">
+      <span>&copy; 2026 InfraCrackNet &middot; Final Year Project, COMSATS University Islamabad</span>
     </div>
   </div>
 </footer>

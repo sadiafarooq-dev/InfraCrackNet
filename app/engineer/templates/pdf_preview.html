@@ -6,21 +6,36 @@
 
 {% block content %}
 <div class="pdf-topbar">
-    <a href="/engineer/reports/{{ report.id }}">&larr; Back</a>
-    <span class="fw-semibold" style="color:var(--navy);">Export Report &mdash; RPT-{{ '%04d'|format(report.id) }}</span>
-    <a href="/engineer/reports/{{ report.id }}/pdf/download" class="btn btn-primary btn-sm">&darr; Download PDF</a>
+    <a href="/engineer/reports/{{ report.id }}" class="fw-semibold" style="text-decoration:none;">&larr; Back to Report</a>
+    <span class="fw-semibold" style="color:var(--navy);">Export Report &middot; RPT-{{ '%04d'|format(report.id) }}</span>
+    <a href="/engineer/reports/{{ report.id }}/pdf/download" class="btn btn-primary pdf-download">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+    </a>
 </div>
 
 <div class="pdf-page-wrap">
     <div class="pdf-page">
+        <div class="pdf-accent"></div>
         <div class="letterhead">
             <span class="brand d-flex align-items-center gap-2">{{ logo_mark(22) }}InfraCrackNet</span>
             <span class="text-muted" style="font-size:0.85rem;">Generated {{ now }}</span>
         </div>
 
-        <h3 class="mb-3">Inspection Report &mdash; RPT-{{ '%04d'|format(report.id) }}</h3>
+        <h3 class="mb-3">Inspection Report &middot; RPT-{{ '%04d'|format(report.id) }}</h3>
 
-        <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded mb-3" style="max-height:260px; width:100%; object-fit:cover;">
+        <img src="/uploads/{{ report.photo_path }}" class="pdf-photo" alt="Inspection photo">
+        {% set all_photos = report_photos(report) %}
+        {% if report.source_type != 'video' and all_photos|length > 1 %}
+        <div class="pdf-thumbs">
+            <span class="pdf-thumbs-label">All {{ all_photos|length }} photos</span>
+            <div class="pdf-thumbs-row">
+                {% for name in all_photos %}
+                <span class="pdf-thumb"><img src="/uploads/{{ name }}" alt="Photo {{ loop.index }}"><b>{{ loop.index }}</b></span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <div class="pdf-detail-grid">
             <div class="col">
@@ -29,7 +44,7 @@
             </div>
             <div class="col">
                 <div class="col-label">Status</div>
-                <div class="col-value">{{ report.status }}</div>
+                <div class="col-value"><span class="pdf-pill pdf-pill-{{ report.status|lower|replace(' ', '-') }}">{{ report.status }}</span></div>
             </div>
             <div class="col">
                 <div class="col-label">Reviewed By</div>
@@ -41,11 +56,50 @@
             </div>
         </div>
 
-        <h6 class="mb-2">Engineer's Notes</h6>
-        <p class="mb-0" style="font-size:0.92rem;">
-            {% if report.engineer_remarks %}{{ report.engineer_remarks }}
-            {% else %}<span class="text-muted">Not yet available, the automatic cause/treatment reference feature is still being built. This section will show the Engineer's own written remarks once a review has been saved.</span>{% endif %}
-        </p>
+        {% set verified_rows = verification_rows(report) %}
+        {% if verified_rows %}
+        <div class="pdf-section">
+            <h6>AI Findings Checked by the Engineer</h6>
+            <ul class="report-points">
+                {% for label, ai, eng in verified_rows %}
+                <li><strong>{{ label }}:</strong> AI: {{ ai if ai else 'no answer' }}, Engineer: {{ eng }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% set photo_lines = photo_result_lines(report) %}
+        {% if photo_lines %}
+        <div class="pdf-section">
+            <h6>AI Findings by Photo</h6>
+            <ul class="report-points">
+                {% for line in photo_lines %}<li>{{ line }}</li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <div class="pdf-section">
+            <h6>Engineer's Notes</h6>
+            <p>{% if report.engineer_remarks and report.engineer_remarks.strip() %}{{ report.engineer_remarks.strip() }}{% else %}<span class="text-muted">No remarks have been recorded for this report yet.</span>{% endif %}</p>
+        </div>
+        {% if report.ai_summary and report.ai_summary.strip() %}
+        <div class="pdf-section">
+            <h6>Plain-English Summary</h6>
+            <p>{{ report.ai_summary.strip() }}</p>
+        </div>
+        {% endif %}
+        {% if report.engineer_cause and report.engineer_cause.strip() %}
+        <div class="pdf-section">
+            <h6>Cause</h6>
+            <ul class="report-points">{% for pt in report.engineer_cause|points %}<li>{{ pt }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+        {% if report.treatment and report.treatment.strip() %}
+        <div class="pdf-section">
+            <h6>Treatment / Solution</h6>
+            <ul class="report-points">{% for pt in report.treatment|points %}<li>{{ pt }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        <div class="pdf-footer">InfraCrackNet &middot; RPT-{{ '%04d'|format(report.id) }}</div>
     </div>
 </div>
 {% endblock %}

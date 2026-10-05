@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import engineer_sidebar, severity_badge, icon_compare, severity_confidence_display %}
+{% from "macros.html" import engineer_sidebar, severity_badge, severity_confidence_display %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -8,26 +8,32 @@
 <div class="app-shell">
     {{ engineer_sidebar('follow-ups', user) }}
     <main class="app-main">
-        <div class="d-flex align-items-center gap-2 mb-1">
-            <div class="icon-badge icon-badge-sm icon-badge-navy">{{ icon_compare() }}</div>
-            <h2 class="page-title mb-0">Follow-up Scan &mdash; RPT-{{ '%04d'|format(report.id) }}</h2>
-        </div>
-        <p class="text-muted mb-4">{{ report.location }} &mdash; comparing the original scan to the new one</p>
+        <a href="/engineer/follow-ups" class="fu-back">&larr; Back to Follow-up Scan</a>
+        <h2 class="page-title mb-1">Follow-up Scan</h2>
+        <p class="text-muted mb-4"><a href="/engineer/reports/{{ report.id }}" class="fw-semibold">RPT-{{ '%04d'|format(report.id) }}</a> &middot; {{ report.location }} &middot; comparing the original scan to the new one</p>
 
         <div class="compare-columns mb-4">
             <div class="compare-col reveal">
-                <div class="mb-2">
-                    <span class="compare-tag">Before</span>
-                    <span class="compare-date">{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                <div class="compare-frame">
+                    <div class="compare-frame-head">
+                        <span class="compare-tag">Before</span>
+                        <span class="compare-date">{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                    </div>
+                    <img src="/uploads/{{ report.photo_path }}" class="compare-img" alt="Original photo">
+                    {% set all_photos = report_photos(report) %}
+                    {% if report.source_type != 'video' and all_photos|length > 1 %}
+                    <p class="text-muted compare-frame-note">The main one of this report's {{ all_photos|length }} photos (the one the AI found most serious, if the analysis was run).</p>
+                    {% endif %}
                 </div>
-                <img src="/uploads/{{ report.photo_path }}" class="img-fluid rounded" style="max-height:280px; width:100%; object-fit:cover;">
             </div>
             <div class="compare-col reveal">
-                <div class="mb-2">
-                    <span class="compare-tag tag-after">After</span>
-                    <span class="compare-date">{{ (report.follow_up_created_at | localtime).strftime("%b %d, %Y") }}</span>
+                <div class="compare-frame">
+                    <div class="compare-frame-head">
+                        <span class="compare-tag tag-after">After</span>
+                        <span class="compare-date">{{ (report.follow_up_created_at | localtime).strftime("%b %d, %Y") }}</span>
+                    </div>
+                    <img src="/uploads/{{ report.follow_up_photo_path }}" class="compare-img" alt="Follow-up photo">
                 </div>
-                <img src="/uploads/{{ report.follow_up_photo_path }}" class="img-fluid rounded" style="max-height:280px; width:100%; object-fit:cover;">
             </div>
         </div>
 
@@ -35,13 +41,13 @@
             <div>
                 <div class="metric-label">Crack Detected</div>
                 <div class="metric-values">
-                    {{ original_label or "—" }}<span class="arrow">&rarr;</span>{{ report.follow_up_ai_label or "—" }}
+                    {{ original_label or "N/A" }}<span class="arrow">&rarr;</span>{{ report.follow_up_ai_label or "N/A" }}
                 </div>
             </div>
             <div>
                 <div class="metric-label">Confidence</div>
                 <div class="metric-values">
-                    {{ (original_confidence ~ "%") if original_confidence is not none else "—" }}<span class="arrow">&rarr;</span>{{ (report.follow_up_ai_confidence ~ "%") if report.follow_up_ai_confidence is not none else "—" }}
+                    {{ (original_confidence ~ "%") if original_confidence is not none else "N/A" }}<span class="arrow">&rarr;</span>{{ (report.follow_up_ai_confidence ~ "%") if report.follow_up_ai_confidence is not none else "N/A" }}
                 </div>
             </div>
             <div>
@@ -61,40 +67,50 @@
         {% if report.follow_up_annotated_photo_path %}
         <div class="compare-columns mb-4">
             <div class="compare-col">
-                <p class="text-muted mb-1" style="font-size:0.82rem;">Before &mdash; AI-traced outline</p>
-                {% if report.model3_annotated_photo_path %}
-                <img src="/uploads/{{ report.model3_annotated_photo_path }}" class="img-fluid rounded" style="max-height:220px; width:100%; object-fit:cover;">
-                {% else %}
-                <p class="text-muted" style="font-size:0.85rem;">Not yet available &mdash; run analysis on this report to trace the original photo.</p>
-                {% endif %}
+                <div class="compare-frame">
+                    <div class="compare-frame-head">
+                        <span class="compare-frame-title">Before &middot; AI-traced outline</span>
+                    </div>
+                    {% if report.model3_annotated_photo_path %}
+                    <img src="/uploads/{{ report.model3_annotated_photo_path }}" class="compare-img compare-img-sm" alt="AI-traced outline, before">
+                    {% else %}
+                    <p class="text-muted compare-frame-note">Not yet available. Run analysis on this report to trace the original photo.</p>
+                    {% endif %}
+                </div>
             </div>
             <div class="compare-col">
-                <p class="text-muted mb-1" style="font-size:0.82rem;">After &mdash; AI-traced outline</p>
-                <img src="/uploads/{{ report.follow_up_annotated_photo_path }}" class="img-fluid rounded" style="max-height:220px; width:100%; object-fit:cover;">
+                <div class="compare-frame">
+                    <div class="compare-frame-head">
+                        <span class="compare-frame-title">After &middot; AI-traced outline</span>
+                    </div>
+                    <img src="/uploads/{{ report.follow_up_annotated_photo_path }}" class="compare-img compare-img-sm" alt="AI-traced outline, after">
+                </div>
             </div>
         </div>
         {% endif %}
 
         <div class="card mb-3">
             <div class="card-body">
-                <h6 class="mb-3">Your Decision</h6>
-                {% if report.follow_up_decision %}
-                <p class="mb-3">Marked as: <strong>{{ report.follow_up_decision }}</strong></p>
-                {% endif %}
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h6 class="mb-0">Your Decision</h6>
+                    {% if report.follow_up_decision %}
+                    <span class="decision-chip {{ 'decision-escalated' if report.follow_up_decision == 'Escalated' else '' }}">Current decision: {{ report.follow_up_decision }}</span>
+                    {% endif %}
+                </div>
                 <div class="d-flex gap-2 flex-wrap">
                     <form method="post" action="/engineer/reports/{{ report.id }}/follow-up/decision">
                         <input type="hidden" name="decision" value="Escalated">
-                        <button type="submit" class="btn btn-outline-primary">Escalate &mdash; Crack Worsening</button>
+                        <button type="submit" class="btn {{ 'btn-primary' if report.follow_up_decision == 'Escalated' else 'btn-outline-primary' }}">{% if report.follow_up_decision == 'Escalated' %}&#10003; {% endif %}Escalate: Crack Worsening</button>
                     </form>
                     <form method="post" action="/engineer/reports/{{ report.id }}/follow-up/decision">
                         <input type="hidden" name="decision" value="Keep Monitoring">
-                        <button type="submit" class="btn btn-primary">Keep Monitoring</button>
+                        <button type="submit" class="btn {{ 'btn-outline-primary' if report.follow_up_decision == 'Escalated' else 'btn-primary' }}">{% if report.follow_up_decision == 'Keep Monitoring' %}&#10003; {% endif %}Keep Monitoring</button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <a href="/engineer/reports/{{ report.id }}/follow-up/new">Add another follow-up photo &rarr;</a>
+        <a href="/engineer/reports/{{ report.id }}/follow-up/new" class="row-action">Add another follow-up photo &rarr;</a>
     </main>
 </div>
 {% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import admin_sidebar, icon_folder %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ admin_sidebar('projects', user) }}
+    <main class="app-main">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h2 class="page-title mb-1">Projects</h2>
+                <p class="text-muted mb-0">Sites being tracked, and who's assigned to each one</p>
+            </div>
+            <a href="/admin/projects/new" class="btn btn-primary">+ Add Project</a>
+        </div>
+
+        {% if rows %}
+        <div class="project-card-grid">
+            {% for row in rows %}
+            <div class="project-card reveal">
+                <div class="project-card-head">
+                    <div class="icon-badge icon-badge-sm">{{ icon_folder() }}</div>
+                    <div>
+                        <div class="project-card-name">{{ row.project.name }}</div>
+                        <div class="project-card-location">{{ row.project.location or "No location set" }}</div>
+                    </div>
+                </div>
+                <div class="project-card-stats">
+                    <span class="project-card-stat">{{ row.inspector_count }} Inspector{{ 's' if row.inspector_count != 1 else '' }}</span>
+                    <span class="project-card-stat">{{ row.engineer_count }} Engineer{{ 's' if row.engineer_count != 1 else '' }}</span>
+                </div>
+                <div class="project-card-footer">
+                    <a href="/admin/projects/{{ row.project.id }}/edit">Edit</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_folder('') }}</div>
+            <h4 class="mb-2">No projects yet</h4>
+            <p class="text-muted mb-0">Add one to start organizing reports by site.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

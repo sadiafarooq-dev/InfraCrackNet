@@ -5,39 +5,54 @@
 {% block content_wrapper_class %}{% endblock %}
 
 {% block content %}
-{{ wizard_header(4, "Review") }}
+{{ wizard_header(5, "Review") }}
 
 <div class="wizard-card">
     <h3 class="mb-4">Review Before You Submit</h3>
 
+    {% set photos = [draft.photo_path] + (draft.extra_photos or []) %}
+    {% if photos|length > 1 %}
+    <p class="photo-strip-title">{{ photos|length }} photos of this crack</p>
+    <div class="photo-strip mb-4">
+        {% for name in photos %}
+        <a href="/uploads/{{ name }}" target="_blank" rel="noopener" class="photo-strip-item">
+            <img src="/uploads/{{ name }}" alt="Photo {{ loop.index }}">
+            <span class="photo-pick-num">{{ 'Main' if loop.first else loop.index }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
     <img src="/uploads/{{ draft.photo_path }}" class="img-fluid rounded mb-4" style="max-height:220px; object-fit:cover;">
+    {% endif %}
 
     {% if draft.source_type == "video" and draft.surface_type == "Road" %}
     <div class="summary-row reveal">
         <span class="label">From video</span>
         <span class="value">
-            This is the frame our AI was most confident about in your uploaded video &mdash;
-            {% if draft.model2_label and draft.model2_label != "No damage type detected" %}
-            damage type: {{ draft.model2_label }}{% if draft.model2_confidence %} ({{ draft.model2_confidence }}%){% endif %} &mdash; the full list of everything spotted in this frame is on the report page after you submit
-            {% else %}
-            no confident road damage type found
-            {% endif %}
-            (severity: {{ draft.model3_severity or "unknown" }}).
+            This is the frame our AI was most confident about in your uploaded video.
+            The full analysis (damage type, severity, and more) will be available
+            on the report page once an Engineer reviews it.
         </span>
     </div>
     {% elif draft.source_type == "video" %}
     <div class="summary-row reveal">
         <span class="label">From video</span>
         <span class="value">
-            This is the most severe frame our AI found in your uploaded video &mdash;
+            This is the frame our AI found most severe in your uploaded video:
             ~floor {{ "%.1f"|format(draft.estimated_floor) if draft.estimated_floor is not none else "?" }}
-            of {{ draft.total_floors }}, ~{{ "%.1f"|format(draft.estimated_height_meters) if draft.estimated_height_meters is not none else "?" }}m up
-            (severity: {{ draft.model3_severity or "unknown" }}).
+            of {{ draft.total_floors }}, ~{{ "%.1f"|format(draft.estimated_height_meters) if draft.estimated_height_meters is not none else "?" }}m up.
+            The full analysis will be available on the report page once an Engineer reviews it.
         </span>
     </div>
     {% endif %}
 
     <div class="mb-4">
+        {% if draft.project_name %}
+        <div class="summary-row reveal">
+            <span class="label">Project</span>
+            <span class="value">{{ draft.project_name }}</span>
+        </div>
+        {% endif %}
         <div class="summary-row reveal">
             <span class="label">Location</span>
             <span class="value">{{ draft.location }}</span>

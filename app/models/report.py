@@ -7,6 +7,12 @@ from sqlmodel import SQLModel, Field
 class Report(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     inspector_id: int = Field(foreign_key="user.id")
+    # Which Project (site) this report belongs to -- picked by the Inspector
+    # on the new "Select Project" step of the New Report wizard (see
+    # inspector/routes.py). None for any report submitted before this feature
+    # existed -- treated everywhere as a shared "Unassigned" report that every
+    # Engineer can still see, rather than being hidden from everyone.
+    project_id: Optional[int] = Field(default=None, foreign_key="project.id")
     # For a video-based Building report, this is NOT the raw uploaded video
     # -- it's the single best frame our video pipeline picked out of it (see
     # video_path below for the actual uploaded video file). Every part of
@@ -172,6 +178,33 @@ class Report(SQLModel, table=True):
     total_floors: Optional[int] = None
     estimated_floor: Optional[float] = None
     estimated_height_meters: Optional[float] = None
+    # Video reports only (Road or Building) -- EVERY frame where a crack was
+    # actually flagged during video analysis, not just the single "winning"
+    # frame saved above as photo_path. Stored as a JSON-encoded list of
+    # {"path", "label", "confidence", "timestamp", "is_winner"} dicts, same
+    # "text column, parsed back into a list to display" pattern as
+    # model2_video_detections above. Powers the "See All Frames" gallery on
+    # the Inspector's Report Detail page and the Engineer's Report Review
+    # page. None for photo reports, and for any video report submitted
+    # before this feature existed.
+    video_all_frames_json: Optional[str] = None
+    # More than one photo in the SAME report: the Inspector can pick 2, 3 or
+    # more photos at once on the Upload step (up to 6). The FIRST photo is
+    # stored in photo_path above, exactly as before, so every part of the app
+    # that shows "the photo" keeps working unchanged. Any further photos are
+    # stored here as a JSON list of file names, e.g. '["a1b2.jpg", "c3d4.jpg"]'
+    # (see text_utils.report_photos for the one function that reads both).
+    # None for a report with a single photo, for every video report, and for
+    # every report submitted before this feature existed.
+    extra_photos_json: Optional[str] = None
+    # What the AI found in EACH photo of a report with several photos -- a JSON
+    # list, one entry per photo, saved when an Engineer runs the analysis. The
+    # photo with the MOST SERIOUS result is put first: it becomes photo_path,
+    # and its results are the ones stored in the report-level model1_* /
+    # model2_* / model3_* fields above (so every page that shows "the AI's
+    # answer" keeps working unchanged). The others follow in the order the
+    # Inspector took them. None for a single-photo report and for every video.
+    photo_results_json: Optional[str] = None
     # The suspected cause of the crack, in the Inspector's own words -- an
     # optional field on the New Report wizard's Context step, since an
     # Inspector may not always know or want to guess at the cause. Shown to
@@ -224,3 +257,14 @@ class Report(SQLModel, table=True):
     # The Engineer's call after reviewing the before/after comparison --
     # "Escalated" or "Keep Monitoring". None until they decide.
     follow_up_decision: Optional[str] = None
+
+    # Engineer's verification of the AI's findings (Report Review, "Verify AI
+    # Findings" step). The AI's own answers (model1_label, model2_label,
+    # model3_severity above) are NEVER overwritten -- the Engineer's own call
+    # on each is stored here, separately, so both can always be shown side by
+    # side ("AI: Medium, Engineer: High"). None until the Engineer verifies.
+    engineer_crack_presence: Optional[str] = None   # "Cracked" / "Uncracked"
+    engineer_crack_type: Optional[str] = None       # Road only; a crack type or "None of these"
+    engineer_severity: Optional[str] = None         # "Low" / "Medium" / "High"
+    verification_note: Optional[str] = None
+    verified_at: Optional[datetime] = None

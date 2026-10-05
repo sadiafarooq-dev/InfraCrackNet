@@ -11,12 +11,25 @@
     <p class="text-muted mb-1" style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;">Follow-up &middot; RPT-{{ '%04d'|format(report.id) }}</p>
     <h3 class="mb-3">Take/Upload a New Photo</h3>
     <p class="text-muted mb-4">Your Engineer asked for a new photo of {{ report.location }}, to check whether the crack has changed since your original report.</p>
+    {% set all_photos = report_photos(report) %}
+    {% if report.source_type != 'video' and all_photos|length > 1 %}
+    <p class="photo-strip-title">Your original {{ all_photos|length }} photos of this spot</p>
+    <div class="photo-strip mb-3">
+        {% for name in all_photos %}
+        <a href="/uploads/{{ name }}" target="_blank" rel="noopener" class="photo-strip-item">
+            <img src="/uploads/{{ name }}" alt="Photo {{ loop.index }}">
+            <span class="photo-pick-num">{{ loop.index }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    <p class="text-muted mb-4" style="font-size:0.86rem;">Take one new photo from the same angle as the first one, so the Engineer can compare them.</p>
+    {% endif %}
 
     <form method="post" action="/inspector/reports/{{ report.id }}/follow-up/new" enctype="multipart/form-data">
         <div class="dropzone mb-4" data-camera-capture>
             <div class="cam-badge">{{ icon_camera('') }}</div>
             <div class="dz-main mb-2">Take a photo or upload from your gallery</div>
-            <div class="dz-sub mb-3">JPG or PNG &mdash; up to 25MB</div>
+            <div class="dz-sub mb-3">JPG or PNG &middot; up to 25MB</div>
 
             <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-open-camera>Open Live Camera</button>
 

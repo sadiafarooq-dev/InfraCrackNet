@@ -107,6 +107,12 @@
                 if (lonInput) lonInput.value = lon;
                 if (sourceInput) sourceInput.value = "device";
 
+                // Lets location-map.js (section 122) move its pin to match,
+                // without this file needing to know the map exists at all --
+                // on a page with no map, nothing is listening and this is a
+                // harmless no-op.
+                document.dispatchEvent(new CustomEvent("infracracknet:location-updated", { detail: { lat: lat, lon: lon } }));
+
                 setStatus("Device location found (" + lat.toFixed(5) + ", " + lon.toFixed(5) + ") -- looking up the address...", false);
 
                 reverseGeocode(

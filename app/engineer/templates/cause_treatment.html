@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "macros.html" import simple_topbar, icon_check %}
+
+{% macro point_section(kind, title, help, points, suggest_url, can_suggest) %}
+<section class="ev-q pt-section" data-pt-kind="{{ kind }}" data-pt-url="{{ suggest_url }}" data-pt-start="{{ points|length }}">
+    <div class="ev-q-head">
+        <h3>{{ title }}</h3>
+        <p class="ev-ai-said">{{ help }}</p>
+    </div>
+    <ul class="pt-list">
+        <li class="pt-empty">No points yet. Use Suggest with AI or add your own.</li>
+        {% for pt in points %}
+        <li class="pt-item">
+            <label class="pt-check">
+                <input type="checkbox" name="{{ kind }}_keep_{{ loop.index0 }}" checked aria-label="Keep this point">
+                <span class="pt-box"></span>
+            </label>
+            <textarea name="{{ kind }}_text_{{ loop.index0 }}" rows="1" class="pt-text">{{ pt }}</textarea>
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="pt-tools">
+        {% if can_suggest %}
+        <button type="button" class="rr-suggest-btn pt-suggest">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+            Suggest with AI
+        </button>
+        {% endif %}
+        <button type="button" class="pt-add">+ Add your own</button>
+        <span class="pt-status" role="status"></span>
+    </div>
+</section>
+{% endmacro %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ simple_topbar("/engineer/reports/" ~ report.id) }}
+
+<div class="ev-wrap">
+    <a href="/engineer/reports/{{ report.id }}" class="fu-back">&larr; Back to RPT-{{ '%04d'|format(report.id) }}</a>
+    <p class="ev-eyebrow">Engineer Review &middot; Step 2 of 3</p>
+    <h2 class="page-title mb-1">Cause and Treatment</h2>
+    <p class="text-muted mb-4">Decide what most likely caused this crack and what should be done about it. Only the points with a tick are saved, so untick anything you do not agree with. You can edit the wording of any point.</p>
+
+    {% if report.cause %}
+    <div class="pt-inspector">
+        <strong>Inspector's suspected cause:</strong> {{ report.cause }}
+    </div>
+    {% endif %}
+
+    {% if not analysis_done %}
+    <div class="pt-inspector">The AI analysis has not been run yet, so Suggest with AI is not available. You can still add your own points.</div>
+    {% endif %}
+
+    <form method="post" action="/engineer/reports/{{ report.id }}/cause-treatment">
+        {{ point_section('cause', 'Likely Causes', 'What probably caused it. These are judgments, not certainties.', cause_points, '/engineer/reports/' ~ report.id ~ '/suggest-cause', analysis_done) }}
+        {{ point_section('treatment', 'Recommended Treatment', 'What should be done, with the most important step first.', treatment_points, '/engineer/reports/' ~ report.id ~ '/suggest-treatment', analysis_done) }}
+
+        <div class="ev-actions">
+            <button type="submit" class="ev-save">{{ icon_check('') }} Save Cause and Treatment</button>
+            <a href="/engineer/reports/{{ report.id }}" class="ev-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+<script src="/static/js/point-list.js?v={{ asset_v }}" defer></script>
+{% endblock %}

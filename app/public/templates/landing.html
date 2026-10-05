@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import public_navbar, public_footer, icon_magnifier, icon_hardhat, icon_camera, icon_clipboard, icon_check, icon_gauge, illustration_scan, illustration_workflow %}
+{% from "macros.html" import public_navbar, public_footer, icon_magnifier, icon_hardhat, icon_camera, icon_clipboard, icon_check, icon_gauge, icon_people, icon_video, illustration_scan, illustration_workflow %}
 
 {% block navbar %}{{ public_navbar('home', user) }}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -16,8 +16,8 @@
         <div class="row align-items-center gy-5">
             <div class="col-lg-7">
                 <span class="eyebrow-pill"><span class="dot"></span>AI-Powered Infrastructure Inspection</span>
-                <h1 class="hero-headline">AI-Powered <span class="hl-accent">Crack Detection</span> for Roads &amp; Buildings</h1>
-                <p class="hero-subtext">InfraCrackNet uses artificial intelligence to detect, classify, and track cracks in roads and buildings, helping inspectors and engineers respond faster and smarter.</p>
+                <h1 class="hero-headline">AI-Powered <span class="hl-accent">Crack Detection</span> for Roads & Buildings</h1>
+                <p class="hero-subtext">InfraCrackNet uses artificial intelligence to detect, classify, and track cracks in roads and buildings (from a single photo or a full video walkthrough), helping inspectors and engineers respond faster and smarter.</p>
                 <div class="d-flex gap-3 flex-wrap mb-4">
                     <a href="/signup" class="btn btn-primary px-4">Get Started</a>
                     <a href="/how-it-works" class="btn btn-outline-primary px-4">See How It Works</a>
@@ -35,8 +35,9 @@
 <div class="scope-bar">
     <div class="container d-flex flex-wrap justify-content-center gap-4">
         <span class="scope-item">{{ icon_check('me-1') }} Road surface cracking</span>
-        <span class="scope-item">{{ icon_check('me-1') }} Building &amp; structural cracks</span>
+        <span class="scope-item">{{ icon_check('me-1') }} Building structural cracks</span>
         <span class="scope-item">{{ icon_check('me-1') }} Severity-scored reports</span>
+        <span class="scope-item">{{ icon_check('me-1') }} Photo & video analysis</span>
     </div>
 </div>
 
@@ -53,7 +54,7 @@
                     <div class="step-num">STEP 01</div>
                     <div class="icon-badge my-3">{{ icon_camera('step-icon') }}</div>
                     <h5 class="fw-semibold">Capture</h5>
-                    <p class="text-muted mb-0">An inspector photographs the crack on site and adds quick notes on the road or building's condition.</p>
+                    <p class="text-muted mb-0">An inspector captures the crack on site (a photo, or a short video for a fuller walkthrough) and adds quick notes on condition.</p>
                 </div>
             </div>
             <div class="col-md-4 reveal">
@@ -88,11 +89,11 @@
             <div class="col-md-4 feature-col reveal">
                 <div class="icon-badge mb-3">{{ icon_check('feature-icon') }}</div>
                 <h5>Crack Detection</h5>
-                <p class="text-muted mb-0">Every photo is checked for cracking with a confidence score attached, so nothing gets missed.</p>
+                <p class="text-muted mb-0">Every photo or video is checked for cracking with a confidence score attached, so nothing gets missed.</p>
             </div>
             <div class="col-md-4 feature-col reveal">
                 <div class="icon-badge icon-badge-navy mb-3">{{ icon_gauge('feature-icon') }}</div>
-                <h5>Type &amp; Severity</h5>
+                <h5>Type Severity</h5>
                 <p class="text-muted mb-0">Cracks are traced and given a severity estimate, so engineers know what needs attention first.</p>
             </div>
             <div class="col-md-4 feature-col reveal">
@@ -104,19 +105,49 @@
     </div>
 </section>
 
-<!-- CTA band -->
-<section class="cta-band bg-blueprint bg-blueprint-dark reveal">
-    {{ icon_clipboard('decor-icon', 'top:20px; left:6%; width:70px; height:70px; transform:rotate(-10deg); color:#fff;') }}
-    <div class="container position-relative" style="z-index:1;">
-        <h2>Ready to see it on your own site?</h2>
-        <p>Sign in with your InfraCrackNet employee code to start submitting and reviewing reports.</p>
-        <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <a href="/login" class="btn btn-primary px-4">Sign In</a>
+<!-- Who Uses It -->
+<section class="section-block">
+    <div class="container text-center">
+        <span class="eyebrow">THREE ROLES, ONE SYSTEM</span>
+        <h2 class="section-heading">A Report, From Start to Finish</h2>
+        <span class="crack-accent mx-auto mb-4" style="--crack-w: 120px;"></span>
+        <div class="row g-4 mt-2 text-start">
+            <div class="col-md-4 reveal">
+                <div class="step-card">
+                    <div class="icon-badge my-3">{{ icon_video('step-icon') }}</div>
+                    <h5 class="fw-semibold">Inspector</h5>
+                    <p class="text-muted mb-0">Captures the crack on site (photo or video), pins the location, and adds quick notes on condition.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="step-card">
+                    <div class="icon-badge icon-badge-navy my-3">{{ icon_gauge('step-icon') }}</div>
+                    <h5 class="fw-semibold">Engineer</h5>
+                    <p class="text-muted mb-0">Reviews the AI's findings, confirms or overrides them, and decides the cause, treatment, and next step.</p>
+                </div>
+            </div>
+            <div class="col-md-4 reveal">
+                <div class="step-card">
+                    <div class="icon-badge my-3">{{ icon_people('step-icon') }}</div>
+                    <h5 class="fw-semibold">Admin</h5>
+                    <p class="text-muted mb-0">Manages users and projects, and keeps an eye on trends and activity across the whole system.</p>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
-<div class="torn-divider"></div>
+<!-- CTA -->
+<section class="cta-band">
+    <div class="container position-relative" style="z-index:1;">
+        <h2 class="fw-bold mb-3">Ready to Catch Cracks Before They Spread?</h2>
+        <p>Create a free account and submit your first inspection report in minutes.</p>
+        <div class="d-flex gap-3 flex-wrap justify-content-center">
+            <a href="/signup" class="btn btn-primary px-4">Get Started Free</a>
+            <a href="/login" class="btn btn-outline-light px-4">Sign In</a>
+        </div>
+    </div>
+</section>
 {% endblock %}
 
 {% block footer %}{{ public_footer('home') }}{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "macros.html" import inspector_sidebar, icon_folder %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+<div class="app-shell">
+    {{ inspector_sidebar('projects', user) }}
+    <main class="app-main">
+        <div class="mb-4">
+            <h2 class="page-title mb-1">Projects</h2>
+            <p class="text-muted mb-0">Sites your Admin has assigned you to</p>
+        </div>
+
+        {% if rows %}
+        <div class="project-card-grid">
+            {% for row in rows %}
+            <div class="project-card reveal">
+                <div class="project-card-head">
+                    <div class="icon-badge icon-badge-sm">{{ icon_folder() }}</div>
+                    <div>
+                        <div class="project-card-name">{{ row.project.name }}</div>
+                        <div class="project-card-location">{{ row.project.location or "No location set" }}</div>
+                    </div>
+                </div>
+                <div class="project-card-footer">
+                    <a href="/inspector/reports?project_id={{ row.project.id }}">See Details</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_folder('') }}</div>
+            <h4 class="mb-2">You haven't been assigned to a project yet</h4>
+            <p class="text-muted mb-0">Contact your Admin to get assigned to a project.</p>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

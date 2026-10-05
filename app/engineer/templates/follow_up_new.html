@@ -11,14 +11,56 @@
     <div class="d-flex justify-content-center">
         <div class="icon-badge icon-badge-lg icon-badge-navy mb-3">{{ icon_compare() }}</div>
     </div>
-    <p class="text-muted mb-1" style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;">Follow-up &middot; RPT-{{ '%04d'|format(report.id) }}</p>
+    <p class="text-muted mb-1 text-center" style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;">Follow-up &middot; RPT-{{ '%04d'|format(report.id) }}</p>
     {% if waiting_on_inspector %}
-    <h3 class="mb-3">Waiting for the Inspector</h3>
-    <p class="text-muted mb-4">A follow-up photo has already been requested for this report. The Inspector will see it on their Report Detail page and submit a new photo of the same spot -- the comparison will show up here automatically once they do.</p>
+    <h3 class="mb-3 text-center">Waiting for the Inspector</h3>
+    <p class="text-muted mb-4 text-center">A follow-up photo has already been requested for this report. The Inspector will see the request on their Report Detail page and submit a new photo of the same spot. The comparison will appear here automatically once they do.</p>
+    {% else %}
+    <h3 class="mb-3 text-center">Request a Follow-up Photo</h3>
+    <p class="text-muted mb-4 text-center">This asks the Inspector who submitted this report to take (or upload) a new photo of the same spot, so you can compare it against the original. You'll be notified the moment they submit it.</p>
+    {% endif %}
+
+    <div class="fu-original">
+        <img src="/uploads/{{ report.photo_path }}" alt="Original inspection photo">
+        <div>
+            <div class="fu-original-id">RPT-{{ '%04d'|format(report.id) }}</div>
+            <div class="fu-original-meta">{{ report.location }}</div>
+            <div class="fu-original-meta">Original photo &middot; {{ (report.created_at | localtime).strftime("%b %d, %Y") }}</div>
+        </div>
+    </div>
+    {% set all_photos = report_photos(report) %}
+    {% if report.source_type != 'video' and all_photos|length > 1 %}
+    <div class="photo-strip-wrap">
+        <p class="photo-strip-title">This report has {{ all_photos|length }} photos. The follow-up is one new photo, compared with the first one shown here.</p>
+        <div class="photo-strip">
+            {% for name in all_photos %}
+            <a href="/uploads/{{ name }}" target="_blank" rel="noopener" class="photo-strip-item">
+                <img src="/uploads/{{ name }}" alt="Photo {{ loop.index }}">
+                <span class="photo-pick-num">{{ loop.index }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="fu-steps">
+        <div class="fu-step {{ 'done' if waiting_on_inspector else 'current' }}">
+            <div class="dot">{% if waiting_on_inspector %}&#10003;{% else %}1{% endif %}</div>
+            You request a follow-up
+        </div>
+        <div class="fu-step {{ 'current' if waiting_on_inspector else '' }}">
+            <div class="dot">2</div>
+            Inspector uploads a new photo
+        </div>
+        <div class="fu-step">
+            <div class="dot">3</div>
+            You compare Before and After
+        </div>
+    </div>
+
+    {% if waiting_on_inspector %}
     <a href="/engineer/reports/{{ report.id }}" class="btn btn-outline-primary w-100">&larr; Back to Report</a>
     {% else %}
-    <h3 class="mb-3">Request a Follow-up Photo</h3>
-    <p class="text-muted mb-4">This asks the Inspector who submitted this report to take (or upload) a new photo of the same spot, so you can compare it against the original. You'll be notified the moment they submit it.</p>
     <form method="post" action="/engineer/reports/{{ report.id }}/follow-up/request">
         <button type="submit" class="btn btn-primary w-100">Request Follow-up &rarr;</button>
     </form>

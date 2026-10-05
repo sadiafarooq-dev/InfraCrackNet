@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% from "macros.html" import simple_topbar, icon_check, photo_results_grid %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ simple_topbar("/engineer/reports/" ~ report.id) }}
+
+<div class="ev-wrap">
+    <a href="/engineer/reports/{{ report.id }}" class="fu-back">&larr; Back to RPT-{{ '%04d'|format(report.id) }}</a>
+    <p class="ev-eyebrow">Engineer Review &middot; Step 1 of 3</p>
+    <h2 class="page-title mb-1">Verify AI Findings</h2>
+    <p class="text-muted mb-4">Look at the photo, then check each answer the AI gave. The AI's answer is already selected. Keep it if you agree, or pick the right one if you don't. The AI's original answer is always kept on record.</p>
+
+    <div class="ev-photos">
+        <figure>
+            <img src="/uploads/{{ report.photo_path }}" alt="Original inspection photo">
+            <figcaption>Original photo</figcaption>
+        </figure>
+        {% if annotated_photo_path %}
+        <figure>
+            <img src="/uploads/{{ annotated_photo_path }}" alt="AI-traced crack outline">
+            <figcaption>What the AI traced</figcaption>
+        </figure>
+        {% endif %}
+    </div>
+
+    {{ photo_results_grid(photo_results, ask_type) }}
+
+    {% if error_text %}
+    <div class="ev-error" role="alert">{{ error_text }}</div>
+    {% endif %}
+
+    <form method="post" action="/engineer/reports/{{ report.id }}/verify">
+
+        {% if ask_presence %}
+        <section class="ev-q">
+            <div class="ev-q-head">
+                <h3>Crack Presence</h3>
+                <p class="ev-ai-said">
+                    {% if ai_presence %}AI said <strong>{{ ai_presence }}</strong>{% if ai_presence_conf %} &middot; {{ ai_presence_conf }}% confidence{% endif %}
+                    {% else %}The AI did not give an answer{% endif %}
+                </p>
+            </div>
+            <div class="ev-options">
+                {% for opt in presence_options %}
+                <label class="ev-opt">
+                    <input type="radio" name="crack_presence" value="{{ opt }}" {% if picked_presence == opt %}checked{% endif %}>
+                    <span class="ev-opt-body">{{ opt }}{% if ai_presence == opt %}<em class="ev-ai-tag">AI</em>{% endif %}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <p class="ev-hint">If you choose Uncracked, the next questions are skipped.</p>
+        </section>
+        {% endif %}
+
+        {% if ask_type %}
+        <section class="ev-q">
+            <div class="ev-q-head">
+                <h3>Crack Type</h3>
+                <p class="ev-ai-said">
+                    {% if ai_type %}AI said <strong>{{ ai_type }}</strong>{% if ai_type_conf %} &middot; {{ ai_type_conf }}% confidence{% endif %}
+                    {% else %}The AI could not name a crack type{% endif %}
+                </p>
+            </div>
+            <div class="ev-options">
+                {% for opt in type_options %}
+                <label class="ev-opt">
+                    <input type="radio" name="crack_type" value="{{ opt }}" {% if picked_type == opt %}checked{% endif %}>
+                    <span class="ev-opt-body">{{ opt }}{% if ai_type == opt %}<em class="ev-ai-tag">AI</em>{% endif %}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="ev-q">
+            <div class="ev-q-head">
+                <h3>Severity</h3>
+                <p class="ev-ai-said">
+                    {% if ai_severity %}AI said <strong>{{ ai_severity }}</strong>{% if ai_severity_conf %} &middot; {{ ai_severity_conf }}% confidence{% endif %}
+                    {% else %}The AI could not rate the severity{% endif %}
+                </p>
+            </div>
+            <div class="ev-options">
+                {% for opt in severity_options %}
+                <label class="ev-opt ev-sev-{{ opt|lower }}">
+                    <input type="radio" name="severity" value="{{ opt }}" {% if picked_severity == opt %}checked{% endif %}>
+                    <span class="ev-opt-body">{{ opt }}{% if ai_severity == opt %}<em class="ev-ai-tag">AI</em>{% endif %}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="ev-q">
+            <div class="ev-q-head">
+                <h3>Your note <span class="ev-optional">optional</span></h3>
+                <p class="ev-ai-said">Why you agreed or changed an answer, if it is worth recording.</p>
+            </div>
+            <textarea name="verification_note" rows="3" class="ev-textarea" placeholder="For example: the crack is wider than the AI outline suggests.">{{ report.verification_note or "" }}</textarea>
+        </section>
+
+        <div class="ev-actions">
+            <button type="submit" class="ev-save">{{ icon_check('') }} Save Verification</button>
+            <a href="/engineer/reports/{{ report.id }}" class="ev-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

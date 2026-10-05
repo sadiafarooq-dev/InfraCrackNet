@@ -21,6 +21,9 @@
         {% if sent %}
         <div class="alert alert-success">Thanks — your message has been sent. We'll get back to you within 1–2 business days.</div>
         {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
         <div class="row g-4">
             <div class="col-md-7 reveal">
                 <div class="contact-form-card">

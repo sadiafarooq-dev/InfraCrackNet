@@ -9,7 +9,7 @@
     {{ engineer_sidebar('follow-ups', user) }}
     <main class="app-main">
         <h2 class="page-title mb-1">Follow-up Scan</h2>
-        <p class="text-muted mb-4">Reviewed and Resolved reports &mdash; add a follow-up photo to check whether a crack has gotten worse</p>
+        <p class="text-muted mb-4">Reviewed and Resolved reports. Add a follow-up photo to check whether a crack has gotten worse</p>
 
         {% if reports %}
         <div class="table-card">
@@ -26,24 +26,24 @@
                 <tbody>
                     {% for report in reports %}
                     <tr>
-                        <td>RPT-{{ '%04d'|format(report.id) }}</td>
+                        <td><a href="/engineer/reports/{{ report.id }}" class="fw-semibold">RPT-{{ '%04d'|format(report.id) }}</a></td>
                         <td>{{ report.location }}</td>
                         <td>
                             {% if report.follow_up_photo_path %}
-                            <span class="text-muted">Added {{ (report.follow_up_created_at | localtime).strftime("%b %d, %Y") }}</span>
+                            <span class="badge bg-success-subtle text-success-emphasis">Added {{ (report.follow_up_created_at | localtime).strftime("%b %d, %Y") }}</span>
                             {% elif report.follow_up_requested_at %}
-                            <span class="text-muted">Waiting for Inspector</span>
+                            <span class="badge bg-warning-subtle text-warning-emphasis">Waiting for Inspector</span>
                             {% else %}
-                            <span class="text-muted">Not requested yet</span>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis">Not requested yet</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-end">
                             {% if report.follow_up_photo_path %}
-                            <a href="/engineer/reports/{{ report.id }}/follow-up">View Comparison</a>
+                            <a href="/engineer/reports/{{ report.id }}/follow-up" class="row-action">View comparison &rarr;</a>
                             {% elif report.follow_up_requested_at %}
-                            <span class="text-muted" style="font-size:0.85rem;">&mdash;</span>
+                            {# Already shown as "Waiting for Inspector" in the Follow-up column, so this action cell is intentionally left blank rather than repeating it or using a placeholder dash. #}
                             {% else %}
-                            <a href="/engineer/reports/{{ report.id }}/follow-up/new">Request Follow-up</a>
+                            <a href="/engineer/reports/{{ report.id }}/follow-up/new" class="row-action">Request follow-up &rarr;</a>
                             {% endif %}
                         </td>
                     </tr>

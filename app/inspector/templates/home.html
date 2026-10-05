@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import inspector_sidebar, status_badge %}
+{% from "macros.html" import inspector_sidebar, status_badge, icon_clipboard %}
 
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
@@ -44,32 +44,25 @@
 
         <h5 class="mb-3">Recent Reports</h5>
         {% if recent_reports %}
-        <div class="table-card">
-        <div class="table-responsive">
-            <table class="table bg-white align-middle">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Location</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for report in recent_reports %}
-                    <tr class="reveal">
-                        <td><a href="/inspector/reports/{{ report.id }}">RPT-{{ '%04d'|format(report.id) }}</a></td>
-                        <td>{{ report.location }}</td>
-                        <td>{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</td>
-                        <td>{{ status_badge(report.status) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <div class="report-card-grid">
+            {% for report in recent_reports %}
+            <a href="/inspector/reports/{{ report.id }}" class="report-card reveal">
+                <div class="report-card-head">
+                    <div class="icon-badge icon-badge-sm">{{ icon_clipboard() }}</div>
+                    <div>
+                        <div class="report-card-name">RPT-{{ '%04d'|format(report.id) }}</div>
+                        <div class="report-card-location">{{ report.location }}</div>
+                    </div>
+                </div>
+                <div class="report-card-footer">
+                    <span class="report-card-date">{{ (report.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                    {{ status_badge(report.status) }}
+                </div>
+            </a>
+            {% endfor %}
         </div>
         {% else %}
-        <p class="text-muted">You haven't submitted any reports yet &mdash; use the New Report button above to add your first one.</p>
+        <p class="text-muted">You haven't submitted any reports yet. Use the New Report button above to add your first one.</p>
         {% endif %}
     </main>
 </div>

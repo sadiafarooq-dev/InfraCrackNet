@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "macros.html" import simple_topbar, ai_hero, stat_tile, crack_measurement_stat, condition_score_badge, icon_gauge, icon_road, icon_check, icon_building_floor, all_frames_gallery, photo_results_grid %}
+
+{% block navbar %}{% endblock %}
+{% block content_wrapper_class %}{% endblock %}
+
+{% block content %}
+{{ simple_topbar("/engineer/reports/" ~ report.id) }}
+
+<div class="an-wrap">
+    <a href="/engineer/reports/{{ report.id }}" class="fu-back">&larr; Back to RPT-{{ '%04d'|format(report.id) }}</a>
+    <p class="ev-eyebrow">AI Analysis</p>
+    <h2 class="page-title mb-1">AI Analysis Results</h2>
+    <p class="text-muted mb-4">RPT-{{ '%04d'|format(report.id) }} &middot; {{ report.location }}. These are the AI's own answers. You check them in the next step, Verify AI Findings.</p>
+
+    {% if not analysis_done %}
+    <div class="empty-state">
+        <div class="icon-wrap">{{ icon_gauge('') }}</div>
+        <h5>The analysis has not been run yet</h5>
+        {% set photo_count = report_photos(report)|length %}
+        {% if report.source_type != 'video' and photo_count > 1 %}
+        <p>Run the AI models on all {{ photo_count }} photos of this report to see what they find. It can take a little longer with several photos.</p>
+        {% else %}
+        <p>Run the AI models on this {{ 'video' if report.source_type == 'video' else 'photo' }} to see what they find.</p>
+        {% endif %}
+        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+            <button type="submit" class="ev-save">Run Analysis</button>
+        </form>
+    </div>
+
+    {% else %}
+
+    {# ---- the pictures, large, side by side ---- #}
+    <div class="an-pair">
+        <div class="an-pane">
+            {% if report.source_type == "video" and report.video_path %}
+            <video src="/uploads/{{ report.video_path }}" controls></video>
+            <div class="an-cap">Original uploaded video</div>
+            {% else %}
+            <img src="/uploads/{{ report.photo_path }}" alt="Original inspection photo">
+            <div class="an-cap">{{ 'Original photo used for the overall result' if photo_results else 'Original photo' }}</div>
+            {% endif %}
+        </div>
+        <div class="an-pane an-pane-ai">
+            {% if report.source_type == "video" and report.surface_type == "Road" %}
+            {{ ai_hero(annotated_photo_path or type_boxes_photo_path, severity_label, severity_confidence, eyebrow='Road survey video') }}
+            {% elif report.source_type == "video" %}
+            {{ ai_hero(annotated_photo_path, severity_label, severity_confidence, eyebrow='Building walkthrough video') }}
+            {% else %}
+            {{ ai_hero(annotated_photo_path, severity_label, severity_confidence, eyebrow='AI-traced crack outline') }}
+            {% endif %}
+        </div>
+        {% if report.source_type == "video" and report.surface_type == "Road" and type_boxes_photo_path and annotated_photo_path %}
+        <div class="an-pane">
+            <img src="/uploads/{{ type_boxes_photo_path }}" alt="AI-detected damage, boxed and labeled">
+            <div class="an-cap">Boxed and labeled detection</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ---- the results, one wide row ---- #}
+    <div class="an-stats">
+        {% if report.source_type != "video" %}
+        {{ stat_tile(icon_check(''), 'Crack Presence', ai_label if ai_label else 'Not yet available', caption=(ai_confidence|string ~ '% confidence' if ai_confidence else ''), tone=('navy' if ai_label else 'muted')) }}
+        {% endif %}
+        {{ crack_measurement_stat(severity_label, report.source_type, crack_length_cm, crack_width_cm, crack_length_px, crack_width_px, crack_area_px, wide=false) }}
+        {% if report.surface_type == "Road" %}
+        {{ stat_tile(icon_road(''), 'Crack Type', type_label if type_label else 'Not yet available', caption=(type_confidence|string ~ '% confidence' if type_confidence else ''), tone=('navy' if type_label else 'muted')) }}
+        {{ stat_tile(icon_gauge(''), 'PCI Score', condition_score_badge(condition_score, condition_rating), tone=('orange' if condition_score is not none else 'muted')) }}
+        {% elif report.source_type == "video" and report.estimated_floor is not none %}
+        {{ stat_tile(icon_building_floor(''), 'Floor / Height', ("%.1f"|format(report.estimated_floor)) ~ " of " ~ (report.total_floors|string), caption='~' ~ ("%.1f"|format(report.estimated_height_meters)) ~ 'm up &middot; estimated from video timing', tone='orange') }}
+        {% endif %}
+    </div>
+    {% if report.surface_type != "Road" %}
+    <p class="an-note">PCI Score is a road-only measure, so it is not shown for buildings.</p>
+    {% endif %}
+
+    {{ photo_results_grid(photo_results, report.surface_type == 'Road') }}
+
+    {{ all_frames_gallery(all_frames) }}
+
+    <div class="an-actions">
+        <a href="/engineer/reports/{{ report.id }}/verify" class="ev-save">Verify these findings</a>
+        <form method="post" action="/engineer/reports/{{ report.id }}/run-analysis">
+            <button type="submit" class="an-rerun">Re-run Analysis</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

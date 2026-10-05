@@ -4,18 +4,31 @@
 {% block navbar %}{% endblock %}
 {% block content_wrapper_class %}{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
 {% block content %}
-{{ wizard_header(2, "Location") }}
+{{ wizard_header(3, "Location") }}
 
 <div class="wizard-card reveal">
     <h3 class="mb-1">Mark the Location</h3>
     <p class="text-muted mb-4">Type the address or landmark where the damage is.</p>
 
-    <div class="map-placeholder mb-4">{{ icon_pin('') }}</div>
+    {# -- Real interactive map (section 122), replacing the old static
+       placeholder box. Leaflet + OpenStreetMap tiles -- same free,
+       no-API-key-needed family of service as the Nominatim address lookups
+       geolocation.js already uses. It's purely a visual confirmation: it
+       drops a pin at whatever coordinates the app already has (from the
+       photo/video's real GPS data, or the "Use My Current Location"
+       fallback) -- see static/js/location-map.js. It doesn't geocode a
+       manually-typed address, and the pin can't be dragged. If the map
+       can't load (offline, blocked), the rest of the form is unaffected. #}
+    <div id="location-map" class="location-map mb-4"></div>
 
     {% if exif_latitude and exif_longitude %}
     <div class="location-found-panel mb-3">
-        <p class="mb-1"><strong>We found the real location saved inside your photo/video</strong> ({{ "%.5f"|format(exif_latitude) }}, {{ "%.5f"|format(exif_longitude) }}) &mdash; this is where it was actually taken, not just where you happen to be uploading from.</p>
+        <p class="mb-1"><strong>We found the real location saved inside your photo/video</strong> ({{ "%.5f"|format(exif_latitude) }}, {{ "%.5f"|format(exif_longitude) }}). This is where it was actually taken, not just where you happen to be uploading from.</p>
         <p class="text-muted mb-0" id="exif-location-status" style="font-size:0.85rem;">Looking up the address for this location...</p>
     </div>
     {% else %}
@@ -53,4 +66,9 @@
     window.__infracracknet_exif_location = { lat: {{ exif_latitude }}, lon: {{ exif_longitude }} };
 </script>
 {% endif %}
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script src="/static/js/location-map.js?v={{ asset_v }}" defer></script>
 {% endblock %}

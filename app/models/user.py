@@ -24,6 +24,13 @@ class User(SQLModel, table=True):
     # back to a plain initials circle when this is empty.
     profile_photo_path: Optional[str] = None
 
+    # Cover/banner photo shown behind the avatar at the top of the Profile
+    # page -- same idea as profile_photo_path above (a filename inside the
+    # shared /uploads folder). None until they upload one, in which case
+    # the Profile page falls back to the plain navy banner with the
+    # crack-line pattern drawn into it.
+    cover_photo_path: Optional[str] = None
+
     # Whether this person has been through the 3-screen Welcome tour yet
     # (see shared/routes.py) -- shown once, right after their very first
     # login, then never again. Used for both Inspector and Engineer (each

@@ -19,33 +19,34 @@
         </div>
 
         {% if rows %}
-        <div class="table-card">
-        <div class="table-responsive">
-            <table class="table bg-white align-middle">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Location</th>
-                        <th>Submitted By</th>
-                        <th>Severity</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                    <tr>
-                        <td><a href="/engineer/reports/{{ row.report.id }}">RPT-{{ '%04d'|format(row.report.id) }}</a></td>
-                        <td>{{ row.report.location }}</td>
-                        <td>{{ row.inspector_name }}</td>
-                        <td>{{ severity_badge(row.severity_label) }}</td>
-                        <td>{{ status_badge(row.report.status) }}</td>
-                        <td><a href="/engineer/reports/{{ row.report.id }}">Review</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <div class="queue-list">
+            <div class="queue-head">
+                <span>#</span>
+                <span>Report</span>
+                <span>Project</span>
+                <span>Submitted By</span>
+                <span>Severity</span>
+                <span>Status</span>
+                <span></span>
+            </div>
+            {% for row in rows %}
+            <div class="queue-row queue-row-{{ row.severity_label|lower if row.severity_label in ['Low', 'Medium', 'High'] else 'none' }} reveal">
+                <div class="queue-cell queue-index">{{ loop.index }}</div>
+                <a href="/engineer/reports/{{ row.report.id }}" class="queue-cell queue-report">
+                    <span class="queue-report-text">
+                        <span class="queue-report-id">RPT-{{ '%04d'|format(row.report.id) }}</span>
+                        <span class="queue-report-location">{{ row.report.location }}</span>
+                    </span>
+                </a>
+                <div class="queue-cell" data-label="Project">{{ row.project_name }}</div>
+                <div class="queue-cell queue-person" data-label="By">{{ row.inspector_name }}</div>
+                <div class="queue-cell">{{ severity_badge(row.severity_label) }}</div>
+                <div class="queue-cell">{{ status_badge(row.report.status) }}</div>
+                <div class="queue-cell queue-action">
+                    <a href="/engineer/reports/{{ row.report.id }}" class="btn btn-outline-primary btn-sm">Review &rarr;</a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
         <p class="text-muted">Nothing in this filter right now.</p>
@@ -55,7 +56,8 @@
         <div class="empty-state">
             <div class="icon-wrap">{{ icon_magnifier('') }}</div>
             <h4 class="mb-2">You're all caught up!</h4>
-            <p class="text-muted mb-0">Nothing pending review right now. New reports will show up here.</p>
+            <p class="text-muted mb-4">Nothing pending review right now. New reports will show up here.</p>
+            <a href="/engineer/reports" class="row-action">View All Reports &rarr;</a>
         </div>
         {% endif %}
     </main>

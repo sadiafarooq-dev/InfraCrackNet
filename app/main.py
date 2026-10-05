@@ -13,6 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from database import init_db
 from time_utils import register_localtime
+from asset_version import register_asset_version
 from public.routes import router as public_router
 from auth.routes import router as auth_router
 from inspector.routes import router as inspector_router
@@ -24,6 +25,7 @@ app = FastAPI()
 
 error_templates = Jinja2Templates(directory="templates")
 register_localtime(error_templates)
+register_asset_version(error_templates)
 
 
 # Shared - 404 Page

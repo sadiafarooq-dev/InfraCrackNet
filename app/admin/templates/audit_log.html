@@ -11,37 +11,35 @@
         <h2 class="page-title mb-1">Audit Log</h2>
         <p class="text-muted mb-4">A record of every account and report action, starting from when this was built</p>
 
-        <div class="card table-card">
-            {% if entries %}
-            <div class="table-responsive">
-                <table class="table mb-0 align-middle">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in entries %}
-                        <tr class="reveal">
-                            <td>{{ (entry.created_at | localtime).strftime("%b %d, %Y · %I:%M %p") }}</td>
-                            <td>{{ entry.actor_name }}</td>
-                            <td><span class="audit-action-badge">{{ entry.action }}</span></td>
-                            <td>{{ entry.details }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% if entries %}
+        <div class="dl-list" style="--dl-cols: 2.2rem minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, 3fr);">
+            <div class="dl-head">
+                <span>#</span>
+                <span>Timestamp</span>
+                <span>User</span>
+                <span>Action</span>
+                <span>Details</span>
             </div>
-            {% else %}
-            <div class="p-4 text-muted d-flex align-items-center gap-2">
-                <div class="icon-badge icon-badge-sm">{{ icon_audit() }}</div>
-                <span>Nothing recorded yet &mdash; real actions (new accounts, report reviews, status changes) will start showing up here as they happen.</span>
+            {% for entry in entries %}
+            <div class="dl-row reveal">
+                <div class="dl-cell dl-index">{{ loop.index }}</div>
+                <div class="dl-cell dl-lead">
+                    <span class="dl-strong">{{ (entry.created_at | localtime).strftime("%b %d, %Y") }}</span>
+                    <span class="dl-sub">{{ (entry.created_at | localtime).strftime("%I:%M %p") }}</span>
+                </div>
+                <div class="dl-cell dl-clip" data-label="User">{{ entry.actor_name }}</div>
+                <div class="dl-cell"><span class="audit-action-badge">{{ entry.action }}</span></div>
+                <div class="dl-cell">{{ entry.details }}</div>
             </div>
-            {% endif %}
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon-wrap">{{ icon_audit('') }}</div>
+            <h4 class="mb-2">Nothing recorded yet</h4>
+            <p class="text-muted mb-0">Real actions (new accounts, report reviews, status changes) will start showing up here as they happen.</p>
+        </div>
+        {% endif %}
     </main>
 </div>
 {% endblock %}

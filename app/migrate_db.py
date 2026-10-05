@@ -14,23 +14,41 @@ import sqlite3
 
 DB_PATH = "infracracknet.db"
 
-# name -> SQLite column type, for every column added to the Report model
-# that a database file created before this round wouldn't have yet.
+# table name -> {column name -> SQLite column type}, for every column added
+# to a model that a database file created before this round wouldn't have
+# yet. Add a new column under the right table (or a new table entry) any
+# time a model gains a field that needs to show up in an existing,
+# already-running database.
 NEW_COLUMNS = {
-    "engineer_cause": "TEXT",
-    "ai_summary": "TEXT",
+    "report": {
+        "engineer_cause": "TEXT",
+        "ai_summary": "TEXT",
+        "project_id": "INTEGER",
+        "video_all_frames_json": "TEXT",
+        "extra_photos_json": "TEXT",
+        "photo_results_json": "TEXT",
+        "engineer_crack_presence": "TEXT",
+        "engineer_crack_type": "TEXT",
+        "engineer_severity": "TEXT",
+        "verification_note": "TEXT",
+        "verified_at": "DATETIME",
+    },
+    "user": {
+        "cover_photo_path": "TEXT",
+    },
 }
 
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
-cur.execute("PRAGMA table_info(report)")
-existing_columns = {row[1] for row in cur.fetchall()}
 
 added = []
-for name, col_type in NEW_COLUMNS.items():
-    if name not in existing_columns:
-        cur.execute(f"ALTER TABLE report ADD COLUMN {name} {col_type}")
-        added.append(name)
+for table, columns in NEW_COLUMNS.items():
+    cur.execute(f"PRAGMA table_info({table})")
+    existing_columns = {row[1] for row in cur.fetchall()}
+    for name, col_type in columns.items():
+        if name not in existing_columns:
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
+            added.append(f"{table}.{name}")
 
 conn.commit()
 conn.close()
